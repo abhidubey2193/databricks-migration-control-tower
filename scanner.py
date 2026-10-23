@@ -11,7 +11,7 @@ RISK_FIELDS = {
 
 def assess(job):
     issues = []
-    tasks = job.get("tasks", [])
+    tasks = job.get("tasks") or []
     if len(tasks) > 10:
         issues.append("More than 10 tasks: review orchestration")
     for task in tasks:
@@ -21,7 +21,8 @@ def assess(job):
                 issues.append(f"{task_name}: {label}")
         if task.get("existing_cluster_id"):
             issues.append(f"{task_name}: references existing classic cluster")
-        path = task.get("notebook_task", {}).get("notebook_path", "")
+        notebook = task.get("notebook_task") or {}
+        path = notebook.get("notebook_path") or ""
         if path.startswith("/dbfs/"):
             issues.append(f"{task_name}: review legacy DBFS notebook path")
     if job.get("schedule") or job.get("continuous") or job.get("trigger"):
