@@ -1,0 +1,15 @@
+{
+  "jobs": [
+    {
+      "job_id": 101,
+      "name": "Synthetic nightly ETL",
+      "schedule": {"quartz_cron_expression": "0 0 0 * * ?"},
+      "tasks": [{"task_key": "extract", "existing_cluster_id": "example-cluster", "spark_conf": {"spark.sql.shuffle.partitions": "200"}}]
+    },
+    {
+      "job_id": 102,
+      "name": "Synthetic candidate",
+      "tasks": [{"task_key": "transform", "notebook_task": {"notebook_path": "/Workspace/Shared/example"}}]
+    }
+  ]
+}
