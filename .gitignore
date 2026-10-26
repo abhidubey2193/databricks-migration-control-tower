@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+.env
+*.sqlite
+*.sqlite-*
+backups/
+.databricks/
+inventory.json
+*.zip
