@@ -1,0 +1,12 @@
+resources:
+  jobs:
+    smct_fleet_scan:
+      name: "[SMCT] Sandbox Fleet Snapshot"
+      description: "Read-only classic jobs/clusters discovery into a controlled UC Delta snapshot. No schedule."
+      tasks:
+        - task_key: snapshot
+          notebook_task:
+            notebook_path: ../notebooks/fleet_scan.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}

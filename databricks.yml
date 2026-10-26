@@ -1,0 +1,17 @@
+bundle:
+  name: serverless-migration-control-tower
+include:
+  - resources/*.job.yml
+variables:
+  catalog:
+    description: Existing Unity Catalog catalog where the principal has CREATE SCHEMA privileges
+    default: main
+  schema:
+    description: Sandbox-only destination schema
+    default: serverless_migration
+targets:
+  dev:
+    mode: development
+    default: true
+  prod:
+    mode: production
