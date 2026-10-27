@@ -1,0 +1,29 @@
+{
+  "evidence_source": "user_pasted_notebook_output",
+  "independently_retrieved": false,
+  "notebook": "notebooks/clone_safety_demo.py",
+  "report": {
+    "dry_run": false,
+    "synthetic_fixture": true,
+    "source_compute": "serverless",
+    "classic_migration_claimed": false,
+    "source_job_id": 280080528059089,
+    "clone_job_id": 524854458216123,
+    "source_digest": "eea3b53b404214c10cb604a1cb3f3d802f8f93ea88547ab59a22e0d4104b5356",
+    "original_unchanged": true,
+    "source_schedule_paused": true,
+    "clone_has_triggers": false,
+    "clone_target_matches": true,
+    "backup_persisted": true,
+    "jobs_started_by_demo": 0,
+    "approval": "explicit apply=true for synthetic fixture only",
+    "cutover_allowed": false,
+    "passed": true,
+    "checked_at": "2026-10-27T15:26:44.921484+00:00"
+  },
+  "limits": [
+    "Source is a synthetic serverless fixture; this is not a classic migration.",
+    "Report confirms the notebook reached final output after Jobs API checks and Delta evidence write.",
+    "Job settings and saved tables have not been independently retrieved by the assistant."
+  ]
+}

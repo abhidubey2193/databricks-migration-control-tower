@@ -33,7 +33,7 @@ No App deployment or SQL warehouse is required for this notebook view. It does n
 
 Open `notebooks/clone_safety_demo.py`, set `catalog=auto`, `schema=serverless_migration`, and `apply=true`, then Run all in an authorized sandbox. It creates/reuses a **paused synthetic serverless source job** and a clone built with the same no-trigger builder used by the migration CLI. It starts neither job. The source backup is appended to `clone_safety_demo_backups` before clone creation; a successful source-digest/trigger check is appended to `clone_safety_demo_evidence`. Rerun the dashboard to show this evidence under Governance.
 
-The source is already serverless: this tests **L10 scheduling safety, not a classic migration**. The fixture jobs reference a harmless notebook and remain paused/unscheduled. Existing name conflicts or an unpaused fixture source fail without changing that job. Repeated runs reuse correctly tagged fixture jobs rather than enabling triggers. No automatic deletion is performed. Live execution of this new safety demo is pending confirmation.
+The source is already serverless: this tests **L10 scheduling safety, not a classic migration**. The fixture jobs reference a harmless notebook and remain paused/unscheduled. Existing name conflicts or an unpaused fixture source fail without changing that job. Repeated runs reuse correctly tagged fixture jobs rather than enabling triggers. No automatic deletion is performed. User-provided workspace output confirms PASS at 2026-10-27T15:26:44.921484+00:00: original unchanged and paused, clone triggers absent, backup persisted, zero jobs started. See `demo/workspace-clone-safety-evidence.json`.
 
 ## Architecture
 
@@ -117,7 +117,7 @@ Live Bundle validation/deployment has not completed in this session. `bundle val
 | L6/L7 | Opt-in code/language detection | No automatic rewrites |
 | L8 | Exact duplicate-aware typed comparator, null/count/key-group diagnostics, persisted synthetic PASS/FAIL | No verified classic run; Workspace output reported by user; no independently verified run ID or classic run |
 | L9 | Source/backup digest checks; rejects Git-backed automatic cloning | No Git/Bundle patch generation |
-| L10 | No-trigger clone, approval requirement, fresh reassessment, backup and advisory gate | Live API creation not yet verified; no atomic promotion |
+| L10 | No-trigger clone, approval requirement, fresh reassessment, backup and advisory gate | Synthetic serverless-source safety fixture API creation reported successful; classic-source CLI cloning and atomic promotion remain unverified |
 | L11 | Cluster log and SSH-key findings | No alternative log delivery setup |
 | L12 | Billing SQL and explicit unavailable-data indicator | No actual before/after DBU or savings |
 | L13 | Heuristic ANSI/streaming findings and suggestions | May flag comments/string literals; no parser or semantic repair |
