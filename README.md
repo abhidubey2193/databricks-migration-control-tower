@@ -27,7 +27,7 @@ Scores reflect retrieved metadata, not full runtime compatibility. The synthetic
 
 After running `validation_demo` and `fleet_scan`, open `notebooks/control_tower_dashboard.py`. Select the authorized compute, set `catalog=auto`, keep `schema=serverless_migration`, then Run all. It reads the latest Delta fleet snapshot plus up to 20 validation reports and renders a read-only seven-section progress view with inventory filters. The notebook prints a dashboard summary after rendering.
 
-No App deployment or SQL warehouse is required for this notebook view. It does not claim access to local SQLite approvals/backups; missing cost and cutover evidence remain explicit. Rerun it to refresh. The user supplied a successful dashboard summary: 2 inventory objects and 4 validation reports (2 PASS, 2 FAIL); visual appearance is not independently inspected. This provides an alternative progress view; it does not prove that the Bundle or Databricks App has deployed.
+No App deployment or SQL warehouse is required for this notebook view. It does not claim access to local SQLite approvals/backups; missing cost and cutover evidence remain explicit. Rerun it to refresh. The user supplied a successful refreshed dashboard summary: 9 inventory objects, 1 scheduling-safety report and 4 validation reports (2 PASS, 2 intentional FAIL); visual appearance is not independently inspected. This provides an alternative progress view; it does not prove that the Bundle or Databricks App has deployed.
 
 ### Live trigger-safety demo
 
