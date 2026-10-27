@@ -83,7 +83,7 @@ Full Bundle deployment is unverified. Its notebooks import the synced `src` dire
 
 The earlier notebooks produced sandbox outputs for inventory (9 objects, no warnings), a rendered dashboard, PASS/FAIL comparison and a live trigger-safety fixture. The fixture used an already-serverless source and started no jobs. Those results are supplied by the operator and saved under `demo/workspace-*-evidence.json`.
 
-The connected programme is a newer addition. Its local state-machine and adapter tests pass; its complete workspace run is still pending. See [verification notes](demo/VERIFICATION.md) for the current test count and boundaries.
+The operator-run connected programme reached VALIDATED with a real serverless job, a passing comparison and an intentionally failing negative control. The source definitions and baseline remain synthetic. See [verification notes](demo/VERIFICATION.md) for the current test count and boundaries.
 
 ## Limits
 

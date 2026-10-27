@@ -1,6 +1,6 @@
 # Submission draft
 
-Complete the bracketed fields and update the connected-run result before sending.
+Complete the bracketed fields before sending.
 
 To: nivethan.venkatachalam@diggibyte.com; anuj.sen@diggibyte.com; veerabadrachari.r@diggibyte.com; william.r@diggibyte.com
 Subject: Serverless Challenge - Submission - [entrant name]
@@ -14,9 +14,9 @@ Demo video: [link required]
 Cloud tested: AWS personal trial sandbox; operator-run notebooks. No classic-compute execution.
 
 Limitations addressed:
-- L1: SDK inventory/readiness and a notebook dashboard. The new connected programme stores decisions, approvals, backups, clone/run references and validation in Delta. Its workspace execution is pending.
+- L1: SDK inventory/readiness and a notebook dashboard. The new connected programme stores decisions, approvals, backups, clone/run references and validation in Delta. Its operator-run workspace lifecycle reached VALIDATED with 17 audit events.
 - L2: Generates an 11-task serverless candidate through the direct Jobs API path, preserving the dependency graph. The large candidate is planned, not executed.
-- L8: Typed, duplicate-aware output comparison with null/count/key diagnostics. The standalone notebook demonstrated PASS and intentional FAIL. The new connected target-job route adds pinned Delta snapshots and run binding; its workspace execution is pending. Baseline data is synthetic.
+- L8: Typed, duplicate-aware output comparison with null/count/key diagnostics. The standalone notebook demonstrated PASS and intentional FAIL. The connected target-job route reached VALIDATED with pinned Delta snapshots and run binding; the intentional negative control failed as expected. Baseline data is synthetic.
 - L10: Live synthetic fixture produced a paused unchanged source, no-trigger clone and persisted backup, with zero jobs started. Source was already serverless.
 - L9: Configuration/code fingerprints and drift checks; no Git/Bundle writeback.
 - L3/L4/L5/L6/L7/L11/L13: Selected static/metadata detection with remediation guidance. No general automatic code or dependency conversion.
@@ -35,7 +35,7 @@ Deploy/reproduce:
 Clone the repo as a Git folder and select enhanced-control-tower. On authorized Serverless compute, use catalog=auto and schema=serverless_migration. Run program_demo with action=assess, inspect its plan, then action=run. Rerun with the same program_id if a job is still executing. Run fleet_scan and control_tower_dashboard to inspect results. The earlier standalone demos remain available.
 
 Tests:
-87 local tests pass. Earlier workspace outputs cover a complete 9-object scan, rendered dashboard, matching/mismatched comparison and live scheduling-safety fixture. The new connected route requires a workspace run before claiming it as tested.
+87 local tests pass. Earlier workspace outputs cover a complete 9-object scan, rendered dashboard, matching/mismatched comparison and live scheduling-safety fixture. The connected route also reached VALIDATED in the operator-run workspace demonstration (job 817177348613471, run 1014105518777189). GitHub Actions passed for b4bd26c.
 
 Known gaps:
 No genuine classic execution, automatic production cutover/rollback, enterprise approval service, verified savings or completed Bundle/App deployment test. The programme runner is single-writer. The required video and final access checks must be completed before sending.

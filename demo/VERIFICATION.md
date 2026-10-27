@@ -6,7 +6,7 @@
 
 `python -m pytest -q`: **87 passed**.
 
-Coverage includes record comparison, clone restrictions, the programme state machine, approval ownership, configuration drift, pinned baseline binding, idempotent run requests, interrupted clone recovery and dashboard rendering. Python compilation and `git diff --check` also pass. GitHub Actions passed for commit `6c72aba` ([run](https://github.com/abhidubey2193/databricks-migration-control-tower/actions/runs/40538800697)); the subsequent architecture-review changes have 87 local passing tests.
+Coverage includes record comparison, clone restrictions, the programme state machine, approval ownership, configuration drift, pinned baseline binding, idempotent run requests, interrupted clone recovery and dashboard rendering. Python compilation and `git diff --check` also pass. GitHub Actions also passed for the serverless write fix, commit `b4bd26c` ([run](https://github.com/abhidubey2193/databricks-migration-control-tower/actions/runs/40549071165)).
 
 ## Workspace checks
 
@@ -17,13 +17,15 @@ The operator supplied these outputs from the personal AWS trial sandbox. They we
 | Fleet scan | 9 objects, complete=true, no warnings | workspace-fleet-evidence.json |
 | Validation notebook | Matching output PASS; changed output FAIL | workspace-validation-evidence.json |
 | Trigger-safety fixture | Paused source unchanged, no-trigger clone, backup saved, zero jobs started | workspace-clone-safety-evidence.json |
+| Connected programme | Ready VALIDATED, real job/run IDs, comparison PASS, negative control FAIL, 17 audit events | workspace-program-evidence.json |
 | Refreshed dashboard | 9 objects, 1 safety report, 4 comparison reports | workspace-dashboard-evidence.json |
+
+The connected run summary reports job `817177348613471`, run `1014105518777189`, ready workload VALIDATED, blocked workload BLOCKED and the 11-task candidate PLANNED. The negative control failed as intended. Its dashboard view is still to check.
 
 The validation baseline is synthetic. The trigger-safety source was already serverless. Neither result proves classic-compute execution.
 
 ## Still to check
 
-- Run the new `program_demo` notebook with `action=run`. It should record one connected lifecycle, an actual serverless Jobs run, a version-pinned comparison and a failed negative control.
 - Confirm the new programme state/audit view in the dashboard.
 - Full authenticated Bundle validation and deployment. The local CLI attempt stopped at missing credentials.
 - Streamlit App deployment. The demonstrated progress view is the notebook dashboard.

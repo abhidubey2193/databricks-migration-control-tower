@@ -3,7 +3,8 @@
 - [x] Earlier inventory, comparison, scheduling-safety and dashboard notebooks have operator-supplied successful workspace outputs.
 - [x] README includes setup, design and known limits.
 - [x] Connected Delta programme, direct large-job planner and recovery checks have local test coverage.
-- [ ] Run the connected programme in the sandbox and check its dashboard view.
+- [x] Connected programme reached VALIDATED in the sandbox; intentional negative control failed.
+- [ ] Refresh and check the connected programme dashboard view.
 - [ ] Record a genuine video of five minutes or less and provide a link judges can open.
 - [ ] Confirm entrant name(s) and team.
 - [ ] Decide repo visibility and approve judge Admin access.

@@ -1,0 +1,56 @@
+{
+  "evidence_source": "user_pasted_notebook_output",
+  "independently_retrieved": false,
+  "notebook": "notebooks/program_demo.py",
+  "actor_omitted": true,
+  "result": {
+    "program_id": "submission_review_v2_c0be0171d33e",
+    "storage": "workspace.serverless_migration.program_events",
+    "approval_identity": "workspace_admin",
+    "workloads": {
+      "blocked": {
+        "status": "BLOCKED",
+        "readiness": 47,
+        "wave": null,
+        "synthetic": true,
+        "clone_job_id": null,
+        "run_id": null,
+        "validation_passed": null,
+        "negative_control_passed": null,
+        "cutover_allowed": false
+      },
+      "large": {
+        "status": "PLANNED",
+        "readiness": 65,
+        "wave": 2,
+        "synthetic": true,
+        "clone_job_id": null,
+        "run_id": null,
+        "validation_passed": null,
+        "negative_control_passed": null,
+        "cutover_allowed": false
+      },
+      "ready": {
+        "status": "VALIDATED",
+        "readiness": 100,
+        "wave": 1,
+        "synthetic": true,
+        "clone_job_id": 817177348613471,
+        "run_id": 1014105518777189,
+        "validation_passed": true,
+        "negative_control_passed": false,
+        "cutover_allowed": false
+      }
+    },
+    "audit_events": 17,
+    "large_plan_tasks": 11,
+    "classic_execution_claimed": false
+  },
+  "limits": [
+    "Operator-supplied summary; full job output and Delta history were not independently retrieved.",
+    "The baseline and source definitions are synthetic; target execution is a real serverless Jobs run.",
+    "negative_control_passed=false means the deliberately incorrect output was rejected as expected.",
+    "The 11-task candidate was planned, not created or executed.",
+    "Connected dashboard refresh remains unverified. No production cutover or savings claimed."
+  ]
+}
