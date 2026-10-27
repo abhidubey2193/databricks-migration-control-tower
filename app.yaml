@@ -1,0 +1,1 @@
+command: ['python', '-m', 'streamlit', 'run', 'app/dashboard.py', '--server.address', '0.0.0.0', '--server.port', '8000']

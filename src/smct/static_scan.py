@@ -6,7 +6,8 @@ def scan_notebook(w, workload):
     if workload.get('kind')!='NOTEBOOK': raise ValueError('Expected notebook')
     path=workload.get('source_path')
     try:
-        response=w.workspace.export(path,format='SOURCE')
+        from databricks.sdk.service.workspace import ExportFormat
+        response=w.workspace.export(path,format=ExportFormat.SOURCE)
         raw=getattr(response,'content',None)
         if not raw: raise ValueError('Notebook has no source content')
         code=base64.b64decode(raw).decode('utf-8')

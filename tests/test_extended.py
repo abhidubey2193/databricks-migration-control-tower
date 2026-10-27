@@ -42,7 +42,7 @@ def test_cloning_guard_and_no_trigger(tmp_path):
     class Jobs:
         def get(self,job_id):
             return SimpleNamespace(settings=JOB if job_id==7 else calls[0][2])
-    w=SimpleNamespace(jobs=Jobs(),api_client=Api())
+    w=SimpleNamespace(jobs=Jobs(),api_client=Api(),clusters=SimpleNamespace(get=lambda cid: {}))
     with pytest.raises(PermissionError): clone_job(w,store,7)
     store.approve('job:7','platform owner','approved isolated experiment')
     plan=clone_job(w,store,7)
@@ -50,9 +50,9 @@ def test_cloning_guard_and_no_trigger(tmp_path):
     created=clone_job(w,store,7,backup_dir=tmp_path/'backups',apply=True)
     assert created['clone_job_id']==19 and len(calls)==1
     assert 'schedule' not in calls[0][2]
-    assert cutover_report(w,store,7)['allowed'] is False
+    assert not cutover_report(w,store,7)['allowed']  # Unbound PASS is not live execution evidence is False
     store.save_validation('job:7',{'passed':True,'classic_rows':2,'serverless_rows':2})
-    assert cutover_report(w,store,7)['allowed']
+    assert not cutover_report(w,store,7)['allowed']  # Unbound PASS is not live execution evidence
 
 def test_table_validation_rejects_injection_and_large():
     assert safe_table('main.smct.classic')=='`main`.`smct`.`classic`'

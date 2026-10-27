@@ -9,3 +9,7 @@ backups/
 .databricks/
 inventory.json
 *.zip
+
+demo-output*/
+*.egg-info/
+.venv/

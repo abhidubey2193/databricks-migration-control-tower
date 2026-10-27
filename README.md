@@ -1,103 +1,127 @@
-# Serverless Migration Control Tower (SMCT)
+# Serverless Migration Control Tower
 
-**Databricks Classic → Serverless Migration Challenge implementation, 26 October 2026.**
+Databricks classic-to-serverless challenge implementation. SDK discovery, shared readiness assessment, durable local approvals/audit, deterministic migration waves, guarded unscheduled job clones, duplicate-aware validation and a seven-section Streamlit dashboard.
 
-This project implements SDK-based discovery, blocker/readiness assessment, durable local approvals and status history, a guarded **no-trigger** job clone for simple workloads, a bounded classic/serverless output-table comparator, a Databricks Bundle inventory-snapshot job and a Streamlit dashboard.
+**Current status: local MVP tested; live workspace deployment and video outstanding.** No genuine classic execution, cloud deployment or savings are claimed. See [verification record](demo/VERIFICATION.md), [limitation examples](demo/LIMITATION_EXAMPLES.md) and [submission draft](demo/SUBMISSION_EMAIL.md).
 
-**This is not a one-click fleet migration tool.** The Beta Genie Code migration agent is not automated. Sandbox deployment and end-to-end Databricks execution have not been verified.
+## Reproduce the working local MVP
 
-## Quick start
-
-Requires Python 3.10+, Databricks SDK/CLI authentication and access to an **internal sandbox workspace only**.
+Python 3.10+ is required. Tests were executed with Python 3.12.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e '.[app,dev]'
-pytest -q
+python -m pytest -q
+python -m smct.cli demo --output demo-output
+SMCT_DB=demo-output/smct.sqlite python -m streamlit run app/dashboard.py
+```
+
+The demo requires no credentials and never contacts Databricks. It exercises the actual assessment, store, clone builder, comparator and advisory gate through an explicitly simulated SDK client. Use a fresh output directory for each run; existing state is never overwritten.
+
+Outputs include four job definitions, isolated baseline/PASS/FAIL JSON, an unscheduled clone, backup, SQLite audit/status records and `evidence.json`. Expected results are committed in [demo/expected-results.json](demo/expected-results.json): ready job 100, blocked image/script job 47, 11-task job 65, scheduled job 82; PASS true, FAIL false, original unchanged, clone triggers absent, cutover blocked.
+
+Scores reflect retrieved metadata, not full runtime compatibility. The synthetic baseline is never an executed classic run. The static L13 scanner provides review suggestions, not semantic repair.
+
+## Architecture
+
+1. `discovery.py` reads SDK paginated jobs, clusters and workspace notebook paths; maps job notebook references and propagates shared-cluster findings. Errors mark inventory incomplete.
+2. `assessment.py` produces explainable findings and scores; unsupported task types fail closed. `static_scan.py` provides opt-in source export/scanning without persisting notebook content.
+3. `Store` persists workloads, manually entered approvals, clone references, validation and audit history in SQLite. `smct waves` records a proposed plan; cross-job dependencies require review.
+4. `orchestration.py` reassesses fresh job and referenced-cluster settings, writes a private backup and creates only a no-trigger serverless candidate. Production promotion remains manual.
+5. `validation.py` compares exact record multisets, typed schema, null counts and optional key groups. SQL mode reads separate bounded tables and refuses over-limit data.
+6. Bundle notebooks share the same Python engine, append inventory and integration-demo evidence to Unity Catalog Delta. The dashboard reads local SQLite, JSON or UC snapshots through a warehouse.
+
+## Authorized sandbox discovery and cloning
+
+Use an internal sandbox only. Never use customer workspaces or data.
+
+```bash
 databricks auth login --profile SANDBOX
 export DATABRICKS_CONFIG_PROFILE=SANDBOX
 smct --db smct.sqlite scan --output inventory.json
 smct --db smct.sqlite list
-streamlit run app/dashboard.py
+smct --db smct.sqlite waves --size 5
+smct --db smct.sqlite approve 123 --actor owner@example.invalid --reason 'Isolated sandbox reviewed'
+smct --db smct.sqlite clone 123
+smct --db smct.sqlite clone 123 --apply
+smct --db smct.sqlite audit
 ```
 
-The scanner can discover jobs, clusters and notebook paths. Code analysis is opt-in; notebook source is never stored in inventory. Workspace discovery may be truncated by the configured notebook cap or privileges.
+Only 1–10 task notebook/Python/wheel jobs without unresolved configuration are accepted. Git sources, libraries needing translation, init scripts, unsupported task fields, existing environments and other ambiguous configurations are rejected. Shared-cluster configuration is fetched afresh. The source job is never modified or executed by clone creation. The clone can still have business side effects if manually run; first review all input/output paths and parameters.
 
-## Deployment using Databricks Asset Bundles
+Notebook source scanning is available through the Python `scan_notebook` function; the default CLI inventory scans metadata only. Notebook-to-cluster attachment and owner identity are not comprehensively inferred.
 
-```bash
-databricks bundle validate -t dev --profile SANDBOX
-databricks bundle deploy -t dev --profile SANDBOX
-databricks bundle run smct_fleet_scan -t dev --profile SANDBOX
-```
+### Exact output validation
 
-Requires serverless-job availability and permissions to create the chosen Unity Catalog schema/table. The Bundle provisions a snapshot job, **not the full Streamlit App or local SQLite control plane**. The bundled notebook writes classic-job and cluster snapshots into `fleet_snapshots`.
-
-## Sandbox-only migration workflow
+Run variants manually with identical immutable inputs and distinct isolated output tables, then:
 
 ```bash
-smct scan --output inventory.json
-smct approve 123 --actor admin@example.invalid --reason 'Sandbox authorized'
-smct clone 123                     # dry-run, no mutation
-smct clone 123 --apply             # creates no-trigger clone and local backup
-```
-
-Only supported 1–10 task notebook/Python/wheel jobs are candidates. Git-backed jobs, task libraries, unsupported constructs and other ambiguous configurations are rejected. **Clone creation is not proof of compatibility.** The original job is never modified. Clone creation is a real workspace mutation and requires explicit recorded approval and `--apply`.
-
-Run classic and serverless workloads **manually** with equivalent snapshots and completely isolated output tables. When both tables are static:
-
-```bash
-smct validate 123 \
+smct --db smct.sqlite validate 123 \
   --http-path '/sql/1.0/warehouses/<SANDBOX_WAREHOUSE_ID>' \
   --classic-table sandbox.smct.classic_output \
   --serverless-table sandbox.smct.serverless_output
-smct gate 123
-smct audit
+smct --db smct.sqlite gate 123
 ```
 
-The comparator checks the full contents up to its configured row cap; it fails on over-limit data rather than reporting a sampled PASS. Its PASS does **not** prove type precision, business semantics, nondeterministic output, side-effect equivalence or production safety. The gate is read-only and does not promote, schedule or cut over jobs.
+The comparator preserves duplicates and value types, includes SQL metadata for empty-table schema checks and rejects unsupported/non-finite values. Exact zero-difference thresholds apply. The CLI compares full contents up to the row cap, not a random sample. It does not freeze tables or bind Delta versions: keep snapshots immutable. Business semantics, side effects, numerical tolerance and nondeterministic outputs need additional checks.
 
-### Safety
+An arbitrary or synthetic PASS cannot satisfy the cutover gate. It additionally requires configuration-bound execution references, typed schema evidence, successful SDK run lookups matching both job IDs, source digest and backup integrity. The current CLI does not assemble that complete execution-provenance record; the gate therefore remains blocked for its unbound comparisons. There is no automatic promotion, schedule activation or rollback mutation. Backups support manual restoration after review.
 
-- Never execute against customer workspaces; never publish customer data, hostnames or secrets.
-- The CLI uses local SQLite. Approver identity is entered manually and is **not** authenticated enterprise-admin approval.
-- Backups can contain sensitive job settings and are stored locally with restricted permissions. Never commit backups.
-- Never run original and validation clone against the same production output paths.
-- Clone schedule, trigger and continuous configuration are removed by construction; never enable two schedules concurrently.
-- Source digest and backup existence are reviewed before cutover, but actual promotion remains manual.
+## Deploy the Bundle in Free Edition or another authorized sandbox
 
-## Challenge coverage
+Install the official Databricks CLI. Set an authenticated SANDBOX profile, choose an existing Unity Catalog catalog and grant CREATE SCHEMA/table permissions. Serverless Jobs, Databricks Apps and warehouse access depend on workspace entitlements.
 
-| ID | Implemented | Known gap |
+```bash
+databricks bundle validate -t dev --profile SANDBOX \
+  --var catalog=main --var schema=serverless_migration
+databricks bundle deploy -t dev --profile SANDBOX \
+  --var catalog=main --var schema=serverless_migration
+databricks bundle run smct_fleet_scan -t dev --profile SANDBOX
+databricks bundle run smct_validation_demo -t dev --profile SANDBOX
+databricks bundle run smct_dashboard -t dev --profile SANDBOX
+```
+
+The Bundle defines two **unscheduled** notebook jobs and a Streamlit App. Source modules are synced alongside notebooks, which import `../src` relative to the notebook working directory. The app installs the package through root `requirements.txt`; root `app.yaml` is its entry point.
+
+- Fleet scan appends timestamped inventory JSON to `<catalog>.<schema>.fleet_snapshots`, including serverless/other jobs and incomplete-inventory warnings. Cluster inventory failure is recorded rather than aborting the whole snapshot.
+- Validation demo executes a Spark transformation of generated sample data, compares against an **imported synthetic baseline**, writes three distinct append-only output tables and PASS/FAIL reports in `validation_demo_evidence`. It does not execute classic compute. Both assertions must succeed.
+- In the App select **Unity Catalog snapshots**, enter catalog/schema and a SQL warehouse ID. Grant its service principal CAN USE on that warehouse plus USE CATALOG, USE SCHEMA and SELECT on the evidence tables. These permissions are not granted automatically. Optional defaults are `SMCT_CATALOG`, `SMCT_SCHEMA`, `SMCT_WAREHOUSE_ID`.
+- Local SQLite is not durable storage for a hosted App. Use UC mode to view persistent inventory and validation reports. Full approvals/migrations/audit remain in the local control plane and are not replicated to Delta.
+
+Live Bundle validation/deployment has not completed in this session. `bundle validate` currently stops at missing workspace credentials. A source/schema check alone does not prove deployability. If Apps are unavailable, use the same dashboard locally against persisted UC data with authorized authentication.
+
+## Coverage and limits
+
+| ID | Working implementation | Boundary |
 |---|---|---|
-| L1 | SDK job/cluster inventory; notebook-path scanning; readiness, dashboard, local approvals and audit; Delta snapshots | Not exhaustive workspace coverage; no bulk migration |
-| L2 | Detects jobs above ten tasks | No task splitting |
-| L3 | Detects init scripts | No translation |
-| L4 | Detects old DBR, ML Runtime, custom images and AWS profiles | No automatic fix |
-| L5 | Flags dependency libraries and Spark JAR tasks | No conversion |
-| L6 | Optional code scan for selected blockers | No code rewrites |
-| L7 | Detects Scala/R metadata | No rewrite |
-| L8 | Real bounded output-table comparator | No automated A/B workload execution |
-| L9 | Refuses Git jobs; source-digest drift check | No Git/Bundle writeback |
-| L10 | No-trigger clone + cutover safety gate | No atomic promotion |
-| L11 | Detects log delivery | No full alternative mapping |
-| L12 | Billing SQL example | No integrated before/after cost dashboard |
-| L13 | Limited ANSI and streaming static rules | No semantic repair |
+| L1 | SDK inventory, scores/findings, local status/approvals/audit, notebook/shared-cluster mapping, wave plans, dashboard | Privilege/cap limited; manual approver identity; no bulk execution or cross-job dependency inference |
+| L2 | Detects >10 tasks and blocks automatic clone | No task splitting |
+| L3 | Detects init scripts, refuses unsafe stripping | No retrieval/translation |
+| L4 | Old DBR, ML Runtime, images, AWS profiles, configs/env variables detected | No automatic rewrite |
+| L5 | Egg/JAR/Maven/task-library detection and guarded rejection | No library conversion |
+| L6/L7 | Opt-in code/language detection | No automatic rewrites |
+| L8 | Exact duplicate-aware typed comparator, null/count/key-group diagnostics, persisted synthetic PASS/FAIL | No verified classic run; Spark integration notebook unverified |
+| L9 | Source/backup digest checks; rejects Git-backed automatic cloning | No Git/Bundle patch generation |
+| L10 | No-trigger clone, approval requirement, fresh reassessment, backup and advisory gate | Live API creation not yet verified; no atomic promotion |
+| L11 | Cluster log and SSH-key findings | No alternative log delivery setup |
+| L12 | Billing SQL and explicit unavailable-data indicator | No actual before/after DBU or savings |
+| L13 | Heuristic ANSI/streaming findings and suggestions | May flag comments/string literals; no parser or semantic repair |
 
-## Project layout
+Do not automate the Beta `/compute migrate to serverless` agent through an assumed API. This project uses Jobs APIs directly for its narrow clone path; agent use is manual.
 
-- `src/smct/` — discovery, scoring, persistence, orchestration, A/B comparison, governance
-- `app/dashboard.py` — Streamlit dashboard
-- `resources/`, `notebooks/`, `databricks.yml` — Databricks Bundle inventory job
-- `sql/control_tables.sql` — Unity Catalog control-table definitions
-- `tests/` — mocked and unit tests; `demo/` — synthetic inventory and demo script
+## Safety and submission
 
-Run `pytest -q` for local validation. Mocked test success is not a Databricks sandbox deployment test, and no demo video is included.
+- Keep backups, SQLite, generated scans and credentials out of Git. Backup files are restricted locally; review them for sensitive settings.
+- Synthetic data is labeled. Tests using mock clients are not live integration tests.
+- Repository visibility was public when checked on 27 October 2026. Privacy and judge Admin access require owner approval; neither was changed.
+- [Recording script](demo/DEMO_SCRIPT.md) is ready. An actual video under five minutes is outstanding.
+- [Submission email](demo/SUBMISSION_EMAIL.md) is a draft; final name, remote SHA, live cloud and video must be confirmed. Nothing is sent automatically.
+- Revised deadline supplied in the handover: **27 October 2026, 23:59 IST / 19:29 Stockholm**.
 
-## References
+## Official references
 
-- [Databricks Bundle resource configuration](https://docs.databricks.com/aws/en/dev-tools/bundles/resources)
-- [Databricks Jobs API](https://docs.databricks.com/api/jobs/v2/create-job)
-- [Serverless environment dependencies](https://docs.databricks.com/aws/en/compute/serverless/dependencies)
-- [Databricks billing tables](https://docs.databricks.com/aws/en/admin/system-tables/billing)
+- [Jobs API and environments](https://docs.databricks.com/api/jobs/v2/job)
+- [Bundle resources](https://docs.databricks.com/aws/en/dev-tools/bundles/resources)
+- [Deploy Databricks Apps with Bundles](https://docs.databricks.com/aws/en/dev-tools/bundles/apps-tutorial)
+- [Billing system tables](https://docs.databricks.com/aws/en/admin/system-tables/billing)

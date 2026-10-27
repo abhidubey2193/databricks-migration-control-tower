@@ -1,0 +1,408 @@
+{
+  "synthetic": true,
+  "live_workspace_tested": false,
+  "generated_at": "2026-10-27T14:24:50.544823+00:00",
+  "workloads": [
+    {
+      "workload_id": "job:103",
+      "kind": "JOB",
+      "name": "SYNTHETIC 11-task dependency chain",
+      "source_path": "",
+      "compute_mode": "classic",
+      "task_count": 11,
+      "status": "BLOCKED",
+      "readiness": 65,
+      "eligible": false,
+      "findings": [
+        {
+          "limitation": "L2",
+          "severity": "blocker",
+          "detail": "Job contains 11 tasks (>10)",
+          "remediation": "Plan task-group migration; do not split dependencies automatically."
+        }
+      ],
+      "attributes": {
+        "job_id": 103,
+        "has_schedule": false,
+        "task_keys": [
+          "t0",
+          "t1",
+          "t2",
+          "t3",
+          "t4",
+          "t5",
+          "t6",
+          "t7",
+          "t8",
+          "t9",
+          "t10"
+        ],
+        "notebook_paths": [
+          "/Workspace/Shared/smct-demo/orders",
+          "/Workspace/Shared/smct-demo/orders",
+          "/Workspace/Shared/smct-demo/orders",
+          "/Workspace/Shared/smct-demo/orders",
+          "/Workspace/Shared/smct-demo/orders",
+          "/Workspace/Shared/smct-demo/orders",
+          "/Workspace/Shared/smct-demo/orders",
+          "/Workspace/Shared/smct-demo/orders",
+          "/Workspace/Shared/smct-demo/orders",
+          "/Workspace/Shared/smct-demo/orders",
+          "/Workspace/Shared/smct-demo/orders"
+        ],
+        "assessment_scope": "metadata_only",
+        "synthetic": true
+      }
+    },
+    {
+      "workload_id": "job:102",
+      "kind": "JOB",
+      "name": "SYNTHETIC blocked container",
+      "source_path": "",
+      "compute_mode": "classic",
+      "task_count": 1,
+      "status": "BLOCKED",
+      "readiness": 47,
+      "eligible": false,
+      "findings": [
+        {
+          "limitation": "L4",
+          "severity": "blocker",
+          "detail": "task orders uses custom container image",
+          "remediation": "Replace container-provided dependencies with supported environments."
+        },
+        {
+          "limitation": "L3",
+          "severity": "high",
+          "detail": "task orders uses init scripts",
+          "remediation": "Review scripts; extract supported dependencies into serverless environment spec."
+        }
+      ],
+      "attributes": {
+        "job_id": 102,
+        "has_schedule": false,
+        "task_keys": [
+          "orders"
+        ],
+        "notebook_paths": [
+          "/Workspace/Shared/smct-demo/orders"
+        ],
+        "assessment_scope": "metadata_only",
+        "synthetic": true
+      }
+    },
+    {
+      "workload_id": "job:101",
+      "kind": "JOB",
+      "name": "SYNTHETIC ready orders",
+      "source_path": "",
+      "compute_mode": "classic",
+      "task_count": 1,
+      "status": "FAILED",
+      "readiness": 100,
+      "eligible": true,
+      "findings": [],
+      "attributes": {
+        "job_id": 101,
+        "has_schedule": false,
+        "task_keys": [
+          "orders"
+        ],
+        "notebook_paths": [
+          "/Workspace/Shared/smct-demo/orders"
+        ],
+        "assessment_scope": "metadata_only",
+        "synthetic": true
+      }
+    },
+    {
+      "workload_id": "job:104",
+      "kind": "JOB",
+      "name": "SYNTHETIC scheduled orders",
+      "source_path": "",
+      "compute_mode": "classic",
+      "task_count": 1,
+      "status": "VALIDATED",
+      "readiness": 82,
+      "eligible": true,
+      "findings": [
+        {
+          "limitation": "L10",
+          "severity": "high",
+          "detail": "Job has an active trigger definition",
+          "remediation": "Never enable clone and original simultaneously; require a cutover gate."
+        }
+      ],
+      "attributes": {
+        "job_id": 104,
+        "has_schedule": true,
+        "task_keys": [
+          "orders"
+        ],
+        "notebook_paths": [
+          "/Workspace/Shared/smct-demo/orders"
+        ],
+        "assessment_scope": "metadata_only",
+        "synthetic": true
+      }
+    }
+  ],
+  "waves": [
+    {
+      "wave": 1,
+      "workload_id": "job:101",
+      "order": 1,
+      "approval_status": "PENDING",
+      "dependency_review": "Required: cross-job dependencies are not inferred"
+    },
+    {
+      "wave": 1,
+      "workload_id": "job:104",
+      "order": 2,
+      "approval_status": "PENDING",
+      "dependency_review": "Required: cross-job dependencies are not inferred"
+    }
+  ],
+  "validation": {
+    "PASS": {
+      "passed": true,
+      "classic_rows": 3,
+      "serverless_rows": 3,
+      "columns_equal": true,
+      "schema_equal": true,
+      "typed_schema_compared": true,
+      "classic_schema": [
+        [
+          "order_id",
+          "LONG"
+        ],
+        [
+          "amount",
+          "LONG"
+        ],
+        [
+          "region",
+          "STRING"
+        ]
+      ],
+      "serverless_schema": [
+        [
+          "order_id",
+          "LONG"
+        ],
+        [
+          "amount",
+          "LONG"
+        ],
+        [
+          "region",
+          "STRING"
+        ]
+      ],
+      "missing_records": 0,
+      "extra_records": 0,
+      "classic_null_counts": {
+        "amount": 2,
+        "order_id": 0,
+        "region": 0
+      },
+      "serverless_null_counts": {
+        "amount": 2,
+        "order_id": 0,
+        "region": 0
+      },
+      "thresholds": {
+        "missing_records": 0,
+        "extra_records": 0
+      },
+      "ignored_columns": [],
+      "comparison_version": 2,
+      "key_columns": [
+        "order_id"
+      ],
+      "changed_key_groups": 0,
+      "duplicate_key_groups": {
+        "classic": 1,
+        "serverless": 1
+      },
+      "baseline_source": "imported_synthetic",
+      "execution_mode": "synthetic_local",
+      "classic_run_id": null,
+      "serverless_run_id": null,
+      "validated_at": "2026-10-27T14:24:50.529752+00:00"
+    },
+    "FAIL": {
+      "passed": false,
+      "classic_rows": 3,
+      "serverless_rows": 3,
+      "columns_equal": true,
+      "schema_equal": true,
+      "typed_schema_compared": true,
+      "classic_schema": [
+        [
+          "order_id",
+          "LONG"
+        ],
+        [
+          "amount",
+          "LONG"
+        ],
+        [
+          "region",
+          "STRING"
+        ]
+      ],
+      "serverless_schema": [
+        [
+          "order_id",
+          "LONG"
+        ],
+        [
+          "amount",
+          "LONG"
+        ],
+        [
+          "region",
+          "STRING"
+        ]
+      ],
+      "missing_records": 1,
+      "extra_records": 1,
+      "classic_null_counts": {
+        "amount": 2,
+        "order_id": 0,
+        "region": 0
+      },
+      "serverless_null_counts": {
+        "amount": 1,
+        "order_id": 0,
+        "region": 0
+      },
+      "thresholds": {
+        "missing_records": 0,
+        "extra_records": 0
+      },
+      "ignored_columns": [],
+      "comparison_version": 2,
+      "key_columns": [
+        "order_id"
+      ],
+      "changed_key_groups": 1,
+      "duplicate_key_groups": {
+        "classic": 1,
+        "serverless": 1
+      },
+      "baseline_source": "imported_synthetic",
+      "execution_mode": "synthetic_local",
+      "classic_run_id": null,
+      "serverless_run_id": null,
+      "validated_at": "2026-10-27T14:24:50.538025+00:00"
+    }
+  },
+  "safety": {
+    "original_unchanged": true,
+    "clone_has_triggers": false,
+    "cutover": {
+      "allowed": false,
+      "reasons": [
+        "A/B validation not passed"
+      ],
+      "original_unchanged": true,
+      "clone_trigger_disabled": true,
+      "execution_evidence_verified": false,
+      "backup_integrity": true,
+      "validation": {
+        "passed": true,
+        "classic_rows": 3,
+        "serverless_rows": 3,
+        "columns_equal": true,
+        "schema_equal": true,
+        "typed_schema_compared": true,
+        "classic_schema": [
+          [
+            "order_id",
+            "LONG"
+          ],
+          [
+            "amount",
+            "LONG"
+          ],
+          [
+            "region",
+            "STRING"
+          ]
+        ],
+        "serverless_schema": [
+          [
+            "order_id",
+            "LONG"
+          ],
+          [
+            "amount",
+            "LONG"
+          ],
+          [
+            "region",
+            "STRING"
+          ]
+        ],
+        "missing_records": 0,
+        "extra_records": 0,
+        "classic_null_counts": {
+          "amount": 2,
+          "order_id": 0,
+          "region": 0
+        },
+        "serverless_null_counts": {
+          "amount": 2,
+          "order_id": 0,
+          "region": 0
+        },
+        "thresholds": {
+          "missing_records": 0,
+          "extra_records": 0
+        },
+        "ignored_columns": [],
+        "comparison_version": 2,
+        "key_columns": [
+          "order_id"
+        ],
+        "changed_key_groups": 0,
+        "duplicate_key_groups": {
+          "classic": 1,
+          "serverless": 1
+        },
+        "baseline_source": "imported_synthetic",
+        "execution_mode": "synthetic_local",
+        "classic_run_id": null,
+        "serverless_run_id": null,
+        "validated_at": "2026-10-27T14:24:50.529752+00:00"
+      },
+      "note": "Manual promotion required; the tool never activates two schedules."
+    }
+  },
+  "L13": [
+    {
+      "limitation": "L13",
+      "severity": "medium",
+      "detail": "Potential ANSI semantic difference",
+      "remediation": "Review casts and divisions; prefer try_cast/try_divide where applicable."
+    },
+    {
+      "limitation": "L13",
+      "severity": "high",
+      "detail": "Streaming query",
+      "remediation": "Check trigger configuration and compare classic/serverless behavior."
+    },
+    {
+      "limitation": "L13",
+      "severity": "high",
+      "detail": "Streaming write has no explicit trigger",
+      "remediation": "Use availableNow=True for bounded processing after reviewing semantics; validate output"
+    }
+  ],
+  "cost": {
+    "status": "UNAVAILABLE",
+    "reason": "No live billing records; no savings claimed"
+  }
+}

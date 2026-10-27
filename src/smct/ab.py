@@ -12,15 +12,18 @@ def safe_table(name):
 
 def warehouse_compare(connection,classic_table,serverless_table,max_rows=10000,ignore_columns=()):
     if max_rows<1 or max_rows>100000: raise ValueError('max_rows must be 1..100000')
+    if classic_table == serverless_table: raise ValueError("Baseline and target must be separate tables")
     output=[]
+    schemas=[]
     for name in (classic_table,serverless_table):
         with connection.cursor() as cur:
             cur.execute(f'SELECT * FROM {safe_table(name)} LIMIT {max_rows+1}')
             columns=[col[0] for col in cur.description]
+            schemas.append([[str(x) for x in col] for col in cur.description])
             rows=cur.fetchall()
         if len(rows)>max_rows: raise ValueError(f'{name} exceeds {max_rows} rows; no PASS recorded')
         output.append([dict(zip(columns,row)) for row in rows])
-    result=compare_rows(output[0],output[1],ignore_columns)
+    result=compare_rows(output[0],output[1],ignore_columns,classic_schema=schemas[0],serverless_schema=schemas[1])
     result.update({'classic_table':classic_table,'serverless_table':serverless_table,'method':'bounded full-table record comparison','max_rows':max_rows,'isolated_outputs_required':True})
     return result
 

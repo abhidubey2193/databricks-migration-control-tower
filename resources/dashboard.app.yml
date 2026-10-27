@@ -1,0 +1,6 @@
+resources:
+  apps:
+    smct_dashboard:
+      name: smct-control-tower
+      description: Serverless migration inventory and validation evidence
+      source_code_path: ..

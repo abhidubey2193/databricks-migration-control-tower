@@ -1,7 +1,7 @@
 bundle:
   name: serverless-migration-control-tower
 include:
-  - resources/*.job.yml
+  - resources/*.yml
 variables:
   catalog:
     description: Existing Unity Catalog catalog where the principal has CREATE SCHEMA privileges

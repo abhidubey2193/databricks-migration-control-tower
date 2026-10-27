@@ -1,0 +1,13 @@
+resources:
+  jobs:
+    smct_validation_demo:
+      name: '[SMCT] Synthetic Baseline Validation Demo'
+      description: Executes generated transformations and persists PASS/FAIL evidence.
+        Baseline is synthetic, never a classic run. No schedule.
+      tasks:
+      - task_key: compare
+        notebook_task:
+          notebook_path: ../notebooks/validation_demo.py
+          base_parameters:
+            catalog: ${var.catalog}
+            schema: ${var.schema}

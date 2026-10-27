@@ -14,6 +14,10 @@ def main():
     scan.add_argument('--no-notebooks',action='store_true')
     scan.add_argument('--root',default='/Workspace')
     scan.add_argument('--max-notebooks',type=int,default=500)
+    demo=sub.add_parser('demo',help='Build a labeled synthetic demonstration without workspace credentials')
+    demo.add_argument('--output',default='demo-output')
+    waves=sub.add_parser('waves',help='Plan classic-job migration waves; cross-job dependencies require review')
+    waves.add_argument('--size',type=int,default=5)
     sub.add_parser('list',help='List persisted workload status')
     approval=sub.add_parser('approve',help='Record authorized sandbox approval')
     approval.add_argument('job_id',type=int)
@@ -34,6 +38,10 @@ def main():
     gate.add_argument('job_id',type=int)
     sub.add_parser('audit',help='Show recorded audit trail')
     args=p.parse_args()
+    if args.command=='demo':
+        from .demo import run_demo
+        print(json.dumps(run_demo(args.output),indent=2))
+        return
     db=Store(args.db)
     if args.command=='scan':
         workloads,errors=inventory(include_notebooks=not args.no_notebooks,root=args.root,max_notebooks=args.max_notebooks)
@@ -58,6 +66,11 @@ def main():
         result=connect_and_compare(args.host,args.http_path,args.classic_table,args.serverless_table,args.max_rows)
         db.save_validation(f'job:{args.job_id}',result)
         print(json.dumps(result,indent=2,default=str))
+    elif args.command=='waves':
+        from .demo import plan_waves
+        result=plan_waves(db.workloads(),args.size)
+        db.event('fleet','WAVES_PLANNED',{'waves':result})
+        print(json.dumps(result,indent=2))
     elif args.command=='audit': print(json.dumps(db.events(),indent=2))
 
 if __name__=='__main__': main()

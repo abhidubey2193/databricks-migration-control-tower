@@ -1,3 +1,3 @@
-A bundle configuration is included, but no automated workspace resources are deployed in this MVP.
-The UI must be deployed separately as an App after its dependencies are configured.
-Do not claim `databricks bundle deploy` fully installs SMCT at this stage.
+# Bundle resources
+
+Two unscheduled serverless notebook jobs and one Streamlit App are defined here. See the repository README for prerequisites and commands. Deploying resources and granting app warehouse/UC access require an authorized sandbox. Live deployment is unverified; SQLite control records are not hosted durability.

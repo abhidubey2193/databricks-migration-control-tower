@@ -1,42 +1,29 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # SMCT - Sandbox Workspace Fleet Snapshot
-# MAGIC Read-only discovery, writes a governed inventory snapshot to a dedicated schema.
+# MAGIC # SMCT workspace inventory
+# MAGIC Uses the same assessment engine as the CLI. No jobs are changed or executed.
 
 # COMMAND ----------
-# Databricks notebook source
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path.cwd().parent / 'src'))
 import json
+import re
 from datetime import datetime, timezone
+from smct.discovery import inventory
 from databricks.sdk import WorkspaceClient
-from pyspark.sql.types import StructType,StructField,StringType,IntegerType,BooleanType
+from pyspark.sql.types import StructType, StructField, StringType
 
-# COMMAND ----------
-dbutils.widgets.text('catalog','main')
-dbutils.widgets.text('schema','serverless_migration')
+for key,default in [('catalog','main'),('schema','serverless_migration')]:
+    dbutils.widgets.text(key,default)
 catalog=dbutils.widgets.get('catalog')
 schema=dbutils.widgets.get('schema')
-import re
-assert re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*',catalog)
-assert re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*',schema)
-workspace=WorkspaceClient()
-rows=[]
-for job in workspace.jobs.list():
-    try:
-        full=workspace.jobs.get(job.job_id)
-        settings=full.settings.as_dict() if full.settings else {}
-        tasks=settings.get('tasks') or []
-        classic=any(t.get('existing_cluster_id') or t.get('new_cluster') or t.get('job_cluster_key') for t in tasks)
-        if not classic: continue
-        blocked=len(tasks)>10 or any(t.get('libraries') or t.get('spark_jar_task') for t in tasks)
-        rows.append((f'job:{job.job_id}',settings.get('name') or str(job.job_id),'JOB',len(tasks),not blocked,'BLOCKED' if blocked else 'DISCOVERED',datetime.now(timezone.utc).isoformat()))
-    except Exception as exc:
-        print('WARN: unable to inspect job',job.job_id,type(exc).__name__)
-for cluster in workspace.clusters.list():
-    rows.append((f'cluster:{cluster.cluster_id}',cluster.cluster_name or cluster.cluster_id,'CLUSTER',0,False,'DISCOVERED',datetime.now(timezone.utc).isoformat()))
-
-# COMMAND ----------
+if not all(re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*',x) for x in (catalog,schema)):
+    raise ValueError('Invalid destination identifier')
+workloads,errors=inventory(WorkspaceClient(),root='/',max_notebooks=500)
+payload={'metadata':{'read_only':True,'complete':not errors,'errors':errors,'synthetic':False},'workloads':[w.to_dict() for w in workloads]}
+scanned_at=datetime.now(timezone.utc).isoformat()
 spark.sql(f'CREATE SCHEMA IF NOT EXISTS `{catalog}`.`{schema}`')
-schema_def=StructType([StructField('workload_id',StringType(),False),StructField('name',StringType()),StructField('kind',StringType()),StructField('task_count',IntegerType()),StructField('initially_eligible',BooleanType()),StructField('status',StringType()),StructField('scanned_at',StringType())])
-frame=spark.createDataFrame(rows,schema_def)
+frame=spark.createDataFrame([(scanned_at,json.dumps(payload))],StructType([StructField('scanned_at',StringType()),StructField('payload_json',StringType())]))
 frame.write.format('delta').mode('append').saveAsTable(f'`{catalog}`.`{schema}`.`fleet_snapshots`')
-print('Saved classic job and cluster snapshot:',len(rows),'items')
+print(json.dumps({'objects':len(workloads),'complete':not errors,'warnings':errors}))
