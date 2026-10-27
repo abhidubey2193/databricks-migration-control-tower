@@ -47,11 +47,14 @@ from datetime import datetime, timezone, timedelta
 
 sys.path.insert(0, str(Path.cwd().parent / "src"))
 from databricks.sdk import WorkspaceClient
+from smct.runtime_refresh import refresh
+
+refresh()
 import smct.fleet as fleet_module
 import smct.program as program_module
 import smct.program_runtime as runtime_module
 
-for module in (fleet_module, program_module, runtime_module):
+for module in (program_module, runtime_module, fleet_module):
     importlib.reload(module)
 from smct.destination import resolve_destination
 from smct.delta_journal import DeltaJournal

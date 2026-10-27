@@ -79,6 +79,9 @@ def spark_compare(
     """Exact distributed EXCEPT ALL comparison of pinned Delta snapshots."""
     from pyspark.sql import functions as F
 
+    def column(name):
+        return F.col("`" + name.replace("`", "``") + "`")
+
     if classic_table == serverless_table:
         raise ValueError("Independent output tables required")
     for version in (classic_version, serverless_version):
@@ -108,8 +111,8 @@ def spark_compare(
         raise ValueError("At least one comparable column required")
     if columns_equal:
         left, right = (
-            left.select(*sorted(left.columns)),
-            right.select(*sorted(right.columns)),
+            left.select(*(column(c) for c in sorted(left.columns))),
+            right.select(*(column(c) for c in sorted(right.columns))),
         )
     schema_equal = left.schema.jsonValue() == right.schema.jsonValue()
     counts = [f.count() for f in (left, right)]
@@ -151,11 +154,18 @@ def spark_compare(
         thresholds=dict(missing_records=0, extra_records=0),
     )
     if key_columns:
+        count_alias = "__smct_count"
+        while count_alias in left.columns or count_alias in right.columns:
+            count_alias += "_"
+        keys = [column(k) for k in key_columns]
         result["duplicate_key_groups"] = dict(
             zip(
                 ("classic", "serverless"),
                 [
-                    f.groupBy(*key_columns).count().where("count > 1").count()
+                    f.groupBy(*keys)
+                    .agg(F.count(F.lit(1)).alias(count_alias))
+                    .where(column(count_alias) > 1)
+                    .count()
                     for f in (left, right)
                 ],
             )
@@ -163,8 +173,8 @@ def spark_compare(
         if schema_equal:
             result["changed_key_groups"] = (
                 left.exceptAll(right)
-                .select(*key_columns)
-                .union(right.exceptAll(left).select(*key_columns))
+                .select(*keys)
+                .union(right.exceptAll(left).select(*keys))
                 .distinct()
                 .count()
             )

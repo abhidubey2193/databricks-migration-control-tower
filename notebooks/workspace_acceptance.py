@@ -21,6 +21,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path.cwd().parent / "src"))
 from databricks.sdk import WorkspaceClient
+from smct.runtime_refresh import refresh
+
+refresh()
 from databricks.sdk.service.workspace import ExportFormat
 import smct.program as program_module
 import smct.program_runtime as runtime_module

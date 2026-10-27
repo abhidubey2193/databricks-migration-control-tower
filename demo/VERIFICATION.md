@@ -4,9 +4,9 @@
 
 ## Local checks
 
-`python -m pytest -q`: **135 passed**.
+`python -m pytest -q`: **136 passed**.
 
-Coverage includes the general fleet lifecycle, two-sided 11-task execution through a simulated Jobs service, classic failure isolation, approval identity, code/config/contract drift, run recovery, Bundle CAS, paused cutover/activation/rollback, lease exclusion, credential rejection, dependency/AST/SQL proposals, billing attribution, shared dashboard reading and real local Spark comparison. Python compilation and `git diff --check` also pass. GitHub Actions also passed for the serverless write fix, commit `b4bd26c` ([run](https://github.com/abhidubey2193/databricks-migration-control-tower/actions/runs/40549071165)).
+Coverage includes the general fleet lifecycle, two-sided 11-task execution through a simulated Jobs service, classic failure isolation, approval identity, code/config/contract drift, run recovery, Bundle CAS, paused cutover/activation/rollback, lease exclusion, credential rejection, dependency/AST/SQL proposals, billing attribution, shared dashboard reading and real local Spark comparison. Python compilation and `git diff --check` also pass. GitHub Actions passed for the full fleet implementation, commit `0c9408a` ([run](https://github.com/abhidubey2193/databricks-migration-control-tower/actions/runs/40558179493)). A subsequent comparison regression covers literal dotted column names and keys named count.
 
 ## Workspace checks
 
@@ -26,7 +26,7 @@ The validation baseline is synthetic. The trigger-safety source was already serv
 
 ## New implementation checks
 
-- 135 local tests passed, including 3 real local Spark tests (Spark 3.5.9, Java 17). Jobs API lifecycle tests use a simulated service; they are not live classic execution.
+- 136 local tests passed, including 4 real local Spark tests (Spark 3.5.9, Java 17). Jobs API lifecycle tests use a simulated service; they are not live classic execution.
 - Bundle configuration was checked against the installed official CLI 1.22.1 JSON schema with zero schema errors. Authentication/deployment is a separate check.
 - Compilation and selected Ruff correctness checks passed.
 - `workspace_acceptance` adds operator-run 1-task/11-task serverless validation and negative controls; its output has not yet been supplied.

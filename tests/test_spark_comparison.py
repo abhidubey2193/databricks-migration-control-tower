@@ -112,3 +112,21 @@ def test_ignored_columns_do_not_mask_nonignored_schema_or_key_errors(spark):
             ignore_columns=["id"],
             key_columns=["id"],
         )
+
+
+def test_literal_dotted_columns_and_count_named_keys(spark):
+    frame = spark.createDataFrame(
+        [(1, 10), (1, 10), (2, None)], "count LONG, `a.b` LONG"
+    )
+    adapter = Snapshots({("before", 0): frame, ("after", 0): frame})
+    result = spark_compare(
+        adapter,
+        "c.s.before",
+        "c.s.after",
+        classic_version=0,
+        serverless_version=0,
+        key_columns=["count", "a.b"],
+    )
+    assert result["passed"]
+    assert result["duplicate_key_groups"] == {"classic": 1, "serverless": 1}
+    assert result["classic_null_counts"]["a.b"] == 1

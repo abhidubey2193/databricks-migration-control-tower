@@ -3,7 +3,7 @@
 - [x] Earlier inventory, comparison, scheduling-safety and dashboard notebooks have operator-supplied successful workspace outputs.
 - [x] README includes setup, design and known limits.
 - [x] General fleet execution, real-classic adapter, large DAGs, remediation, costs, Bundle writeback, cutover/rollback and recovery have local regression coverage.
-- [x] 135 local tests, including real Spark comparison; official CLI Bundle schema check passed.
+- [x] 136 local tests, including real Spark comparison; official CLI Bundle schema check passed.
 - [ ] Execute the new workspace_acceptance notebook and authenticated Bundle deployment.
 - [ ] Genuine classic A/B acceptance needs a classic-capable sandbox; current workspace is serverless-only.
 - [x] Connected programme reached VALIDATED in the sandbox; intentional negative control failed.

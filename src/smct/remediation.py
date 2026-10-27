@@ -226,7 +226,7 @@ def rewrite_python(
                         r"\bglobal_temp\." + re.escape(name) + r"\b", table, text
                     )
                 node.args[0].value = text
-            if available_now and method == "start":
+            if available_now and method in ("start", "toTable"):
                 chain = ast.unparse(node.func.value)
                 if "writeStream" in chain and ".trigger(" not in chain:
                     node.func.value = ast.Call(

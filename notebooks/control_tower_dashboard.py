@@ -28,13 +28,17 @@ dbutils.widgets.dropdown("minimum_score", "0", ["0", "25", "50", "75", "100"])
 catalog, schema = resolve_destination(
     spark, dbutils.widgets.get("catalog"), dbutils.widgets.get("schema")
 )
-from smct.evidence import load_evidence
-saved = load_evidence(lambda sql: [r.asDict() for r in spark.sql(sql).collect()], catalog, schema)
-payload = saved['payload']
-reports = saved['reports']
-safety_reports = saved['safety_reports']
-program_states = saved['program_states']
-program_events = saved['program_events']
+import smct.evidence as evidence_module
+
+load_evidence = importlib.reload(evidence_module).load_evidence
+saved = load_evidence(
+    lambda sql: [r.asDict() for r in spark.sql(sql).collect()], catalog, schema
+)
+payload = saved["payload"]
+reports = saved["reports"]
+safety_reports = saved["safety_reports"]
+program_states = saved["program_states"]
+program_events = saved["program_events"]
 html = render_dashboard(
     payload,
     reports,

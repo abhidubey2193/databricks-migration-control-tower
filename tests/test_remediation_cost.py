@@ -123,6 +123,12 @@ def test_streaming_proposal_adds_available_now_only_when_absent():
         "q = df.writeStream.trigger(availableNow=True).start()", available_now=True
     )["source"]
     assert output2.count(".trigger(") == 1
+    assert (
+        ".trigger(availableNow=True).toTable"
+        in rewrite_python("q=df.writeStream.toTable('c.s.out')", available_now=True)[
+            "source"
+        ]
+    )
 
 
 def test_sql_proposal_uses_parser_and_leaves_literals_untouched():

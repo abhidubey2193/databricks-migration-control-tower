@@ -316,7 +316,7 @@ def render_dashboard(
                 observed,
             )
         )
-    else:
+    elif not comparisons:
         parts.append(
             '<p class="muted">Usage unavailable or not yet billed. Billing can lag and requires system-table permissions.</p>'
         )
