@@ -186,7 +186,15 @@ class Program:
         )
         return self._write(wid, "DISPOSITION_RECORDED", state)
 
-    def plan(self, wid, *, allow_large=False, resolved_settings=None, dependencies=()):
+    def plan(
+        self,
+        wid,
+        *,
+        allow_large=False,
+        resolved_settings=None,
+        dependencies=(),
+        task_dependencies=None,
+    ):
         state = self.state(wid)
         if state["status"] not in ("READY", "BLOCKED", "PLANNED"):
             raise ValueError("Plan can only be created before approval")
@@ -211,6 +219,12 @@ class Program:
                 "Shared cluster configuration must be resolved before programme planning"
             )
         candidate = build_serverless_clone(planning_source, allow_large=allow_large)
+        if task_dependencies is not None:
+            if dependencies:
+                raise ValueError("Choose shared or task-specific dependencies")
+            from .remediation import assign_task_environments
+
+            candidate = assign_task_environments(candidate, task_dependencies)
         if dependencies:
             from .remediation import dependency_plan
             import shlex
@@ -230,9 +244,11 @@ class Program:
             candidate=candidate,
             candidate_digest=digest(candidate),
             status="PLANNED",
-            plan_method="direct_jobs_api_preserved_dag"
-            if allow_large
-            else "guarded_serverless_clone",
+            plan_method=(
+                "direct_jobs_api_preserved_dag"
+                if allow_large
+                else "guarded_serverless_clone"
+            ),
             task_layers=validate_task_graph(candidate["tasks"]),
             resolution_digest=digest(planning_source),
         )
@@ -262,9 +278,11 @@ class Program:
             status="APPROVED",
             approval={
                 "actor": self.actor,
-                "scope": "workspace_admin"
-                if is_workspace_admin
-                else "authenticated_synthetic_fixture_owner",
+                "scope": (
+                    "workspace_admin"
+                    if is_workspace_admin
+                    else "authenticated_synthetic_fixture_owner"
+                ),
                 "reason": reason,
                 "approved_at": utcnow(),
                 "source_digest": state["source_digest"],

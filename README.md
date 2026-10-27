@@ -34,13 +34,14 @@ bash scripts/deploy.sh SANDBOX dev
 
 The script validates and deploys the Bundle, runs the enhanced fleet scan and renders a dashboard snapshot. It requires authenticated workspace access, serverless entitlement and a writable catalog. Bundle resources include six jobs and the App definition. No job has a schedule. The fleet controller and acceptance jobs default to read-only assessment actions.
 
-For the App, select **Unity Catalog snapshots**, provide a warehouse ID and use `catalog=auto` or an explicit catalog. Grant its principal warehouse CAN USE and SELECT on the evidence schema. The notebook dashboard needs no App deployment or SQL warehouse.
+For the App, select **Unity Catalog snapshots**, provide a warehouse ID and use `catalog=auto` or an explicit catalog. Grant its principal warehouse CAN USE and SELECT on the evidence schema. The notebook dashboard needs no App deployment or SQL warehouse. Both views show task environments, a proposed settings diff, next actions and daily programme progress. Search matches names, owners, findings and packages. Programme selection scopes plans and history; status/search filter the current fleet and plan lists. Progress history uses complete journal revisions and lists synthetic programmes separately.
 
 ## Design
 
 [Architecture](ARCHITECTURE.md) describes the state machine and failure handling. [Coverage](demo/LIMITATION_EXAMPLES.md) maps the implementation to L1–L13.
 
 - Jobs 2.2 arrays are paginated explicitly. The direct compiler preserves DAGs up to 1,000 tasks; unsupported task/configuration combinations are rejected.
+- Task-specific packages stay in separate serverless environments; identical dependency sets share an environment. Conflicting pins within one task block planning.
 - Plans, notebook fingerprints, input versions and dependencies are bound before approval. Literal credential-like settings are rejected before durable backup.
 - The fleet controller acquires a cooperative Delta lease. Each state revision and audit event is appended together. Restrict table write permissions to controller operators.
 - Real A/B validation creates two unscheduled clones: one classic, one serverless. It never runs the source job. Outputs use separate tables and pinned input versions.

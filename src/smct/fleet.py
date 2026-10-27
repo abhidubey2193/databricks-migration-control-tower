@@ -20,7 +20,12 @@ from .program_runtime import (
     submit_or_recover_run,
     observe_run,
 )
-from .remediation import dependency_plan, read_init_script, translate_job
+from .remediation import (
+    dependency_plan,
+    read_init_script,
+    translate_job,
+    assign_task_environments,
+)
 
 
 def authenticated_identity(w, spark=None):
@@ -229,6 +234,7 @@ class FleetRunner:
             resolved,
             script_plans=scripts,
             library_replacements=manifest.get("library_replacements"),
+            task_scoped=True,
         )
         code = notebook_digests(self.w, translated)
         source_inputs = manifest["inputs"]
@@ -242,12 +248,12 @@ class FleetRunner:
         production = build_serverless_clone(translated, allow_large=True)
         production["name"] = original["name"]
         production["tags"] = copy.deepcopy(original.get("tags", {}))
-        production["environments"][0]["spec"]["dependencies"] = dependencies
+        production = assign_task_environments(production, dependencies)
         state = self.program.plan(
             wid,
             allow_large=True,
             resolved_settings=translated,
-            dependencies=dependencies,
+            task_dependencies=dependencies,
         )
         namespace = hashlib.sha256(
             (self.program.program_id + ":" + wid).encode()
@@ -573,9 +579,11 @@ class FleetRunner:
                 results[wid] = (
                     self.approve(wid, reason)
                     if action == "approve"
-                    else self.step(wid)
-                    if action == "execute"
-                    else self.program.state(wid)
+                    else (
+                        self.step(wid)
+                        if action == "execute"
+                        else self.program.state(wid)
+                    )
                 )
             except Exception as exc:
                 # Preserve other workloads' progress; a rejected action cannot create a PASS.

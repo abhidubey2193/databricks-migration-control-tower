@@ -243,3 +243,82 @@ def test_bundle_writeback_is_idempotent_and_rejects_drift_and_traversal(tmp_path
     )
     with pytest.raises(ValueError):
         write_bundle(tmp_path, "../outside.yml", proposal)
+
+
+def test_task_dependencies_do_not_leak_between_clusters_and_libraries():
+    from smct.remediation import assign_task_environments
+    from smct.orchestration import build_serverless_clone
+
+    source = {
+        "name": "isolated",
+        "job_clusters": [
+            {
+                "job_cluster_key": "shared",
+                "new_cluster": {
+                    "init_scripts": [
+                        {"workspace": {"destination": "/Workspace/deps.sh"}}
+                    ]
+                },
+            }
+        ],
+        "tasks": [
+            {
+                "task_key": "a",
+                "job_cluster_key": "shared",
+                "libraries": [{"pypi": {"package": "numpy==1.26.4"}}],
+                "notebook_task": {"notebook_path": "/Workspace/a"},
+            },
+            {
+                "task_key": "b",
+                "new_cluster": {},
+                "libraries": [{"pypi": {"package": "numpy==2.0.2"}}],
+                "notebook_task": {"notebook_path": "/Workspace/b"},
+            },
+            {
+                "task_key": "c",
+                "job_cluster_key": "shared",
+                "libraries": [{"pypi": {"package": "numpy==1.26.4"}}],
+                "notebook_task": {"notebook_path": "/Workspace/c"},
+            },
+        ],
+    }
+    plan = dict(dependency_plan("pip install pandas==2.2.3"), uri="/Workspace/deps.sh")
+    translated, per_task = translate_job(source, script_plans=[plan], task_scoped=True)
+    assert per_task == {
+        "a": ["numpy==1.26.4", "pandas==2.2.3"],
+        "b": ["numpy==2.0.2"],
+        "c": ["numpy==1.26.4", "pandas==2.2.3"],
+    }
+    candidate = build_serverless_clone(translated)
+    result = assign_task_environments(candidate, per_task)
+    envs = {
+        e["environment_key"]: e["spec"]["dependencies"] for e in result["environments"]
+    }
+    tasks = {t["task_key"]: t for t in result["tasks"]}
+    assert tasks["a"]["environment_key"] == tasks["c"]["environment_key"]
+    assert tasks["a"]["environment_key"] != tasks["b"]["environment_key"]
+    assert envs[tasks["b"]["environment_key"]] == ["numpy==2.0.2"]
+    assert candidate["environments"][0]["spec"]["dependencies"] == []
+    assert source["tasks"][0]["libraries"]
+    # Reordered API task readback must not rename environments.
+    candidate["tasks"].reverse()
+    assert (
+        assign_task_environments(candidate, per_task)["environments"]
+        == result["environments"]
+    )
+
+
+@pytest.mark.parametrize(
+    "mapping",
+    [
+        {},
+        {"a": ["pkg"]},
+        {"a": ["pkg==1"], "unknown": []},
+        {"a": ["Some_Pkg==1", "some-pkg==2"]},
+    ],
+)
+def test_task_environment_plan_rejects_incomplete_or_unreviewed_dependencies(mapping):
+    from smct.remediation import assign_task_environments
+
+    with pytest.raises(ValueError):
+        assign_task_environments({"tasks": [{"task_key": "a"}]}, mapping)

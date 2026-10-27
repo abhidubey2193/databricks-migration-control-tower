@@ -31,7 +31,7 @@ flowchart TD
 | `ab.py`, `validation.py` | Distributed pinned-table comparison and bounded/local record comparison |
 | `cost.py` | Workspace-scoped, correction-aware run attribution and effective list pricing |
 | `reconcile.py`, `promotion.py` | Atomic Bundle writeback, staged original-ID cutover, activation and rollback |
-| `evidence.py`, `notebook_dashboard.py` | Shared persisted reader, fleet/programme join and escaped HTML view |
+| `evidence.py`, `review.py`, `notebook_dashboard.py` | Shared persisted reader, plan diffs, programme history and escaped HTML view |
 
 ## State and identity
 
@@ -46,6 +46,8 @@ SDK identity must match SQL `current_user`. The runner derives administrator sta
 ## Execution model
 
 The manifest is the workload's I/O contract. It declares an immutable input table/version, parameter names, task-input dependencies, final output task, ignored/key columns and wave. Planning gives classic and serverless runs independent output namespaces. Automatic execution is limited to notebook tasks that obey this reviewed contract.
+
+Dependency translation retains cluster and task scope. Each task receives its own reviewed package set; identical sets share an environment. Different versions across tasks remain isolated; contradictory pins within a task stop planning. Environment assignment is deterministic and included in both the validation candidate and the production proposal, so changing packages invalidates the bound approval.
 
 The classic baseline is an unscheduled validation clone retaining classic compute and libraries. The source job is not run. A successful bound classic run and immutable output version must exist before serverless submission. Both requests use durable idempotency tokens. Exact identity tags allow job recovery if creation succeeds before the corresponding event is committed; duplicate matches stop recovery.
 
@@ -88,6 +90,10 @@ Generated Bundle resources omit triggers and require an explicit bind to manage 
 | Crash after cutover reset | Verify live readback before completing the saved request |
 | Active runs or clone triggers | Block cutover, rollback or activation |
 | Rollback backup/file drift | Stop; do not overwrite current state |
+
+## Operator review
+
+The notebook and App use the same read-only renderer. Plans show task dependencies, environment packages, a source-to-proposal settings diff and a suggested next action. Search/status filters narrow current lists; programme selection scopes plan and audit views. Daily progress reconstructs the last journal revision per programme/workload for each day, carrying state forward. Synthetic workloads are counted separately, and validated, migrated-paused and active migrations are distinct. Multiple programmes for the same source remain separate attempts; the history is not a count of unique source jobs. UI controls never authorize a lifecycle transition.
 
 ## Deployment boundary
 

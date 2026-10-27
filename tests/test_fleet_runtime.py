@@ -418,3 +418,28 @@ def test_retrying_cutover_after_code_edit_is_refused(setup, tmp_path):
     w.workspace.export = lambda *a, **k: NS(content=base64.b64encode(b"x=2").decode())
     with pytest.raises(ValueError, match="source drift"):
         controller.cutover("orders", reason="recover")
+
+
+def test_fleet_keeps_task_dependency_environments_in_both_bound_candidates(setup):
+    w, p, runner, item = setup
+    first = w.settings[1]["tasks"][0]
+    first["libraries"] = [{"pypi": {"package": "numpy==1.26.4"}}]
+    other = copy.deepcopy(first)
+    other["task_key"] = "second"
+    other["depends_on"] = [{"task_key": "orders"}]
+    other["libraries"] = [{"pypi": {"package": "numpy==2.0.2"}}]
+    w.settings[1]["tasks"].append(other)
+    runner.assess(item)
+    state = runner.plan("orders")
+    for field in ("candidate", "production_candidate"):
+        candidate = state[field]
+        assert len(candidate["environments"]) == 2
+        assert len({t["environment_key"] for t in candidate["tasks"]}) == 2
+        assert candidate["tasks"][1]["depends_on"] == [{"task_key": "orders"}]
+    runner.approve("orders", "Reviewed separate dependency sets")
+    state = p.state("orders")
+    state["candidate"]["environments"][0]["spec"]["dependencies"] = ["numpy==9"]
+    p._write("orders", "SIMULATED_EDIT", state)
+    with pytest.raises(ValueError, match="contract drift"):
+        runner.step("orders")
+    assert not w.calls

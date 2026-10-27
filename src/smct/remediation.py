@@ -107,18 +107,25 @@ def dependency_plan(script):
     }
 
 
-def translate_job(settings, *, script_plans=(), library_replacements=None):
+def translate_job(
+    settings, *, script_plans=(), library_replacements=None, task_scoped=False
+):
     """Return reviewed source + dependency spec. Original stays unchanged.
 
     Custom images, profiles, ML runtimes and Spark settings still block the compiler.
     Replacement packages must be explicit; JAR/egg conversion is never guessed.
+    task_scoped=True returns a task-key-to-dependencies map for isolated environments;
+    the default flat list is retained for existing callers.
     """
     result = copy.deepcopy(settings)
     deps = set()
+    per_task = {}
+    cluster_deps = {}
     plans = {p["uri"]: p for p in script_plans}
     clusters = [t.get("new_cluster", {}) for t in result.get("tasks", [])]
     clusters += [c.get("new_cluster", {}) for c in result.get("job_clusters", [])]
     for cluster in clusters:
+        local_deps = set()
         for script in cluster.get("init_scripts", []):
             entries = [
                 v.get("destination") for v in script.values() if isinstance(v, dict)
@@ -131,10 +138,18 @@ def translate_job(settings, *, script_plans=(), library_replacements=None):
                 raise ValueError(
                     "Every init script requires a complete reviewed translation"
                 )
-            deps.update(plans[entries[0]]["dependencies"])
+            local_deps.update(plans[entries[0]]["dependencies"])
+        deps.update(local_deps)
+        cluster_deps[id(cluster)] = local_deps
         cluster.pop("init_scripts", None)
     replacements = library_replacements or {}
+    shared = {
+        c["job_cluster_key"]: c.get("new_cluster", {})
+        for c in result.get("job_clusters", [])
+    }
     for task in result.get("tasks", []):
+        cluster = task.get("new_cluster") or shared.get(task.get("job_cluster_key"), {})
+        task_deps = set(cluster_deps.get(id(cluster), ()))
         for library in task.get("libraries", []):
             if set(library) == {"pypi"} and set(library["pypi"]) == {"package"}:
                 package = library["pypi"]["package"]
@@ -157,8 +172,57 @@ def translate_job(settings, *, script_plans=(), library_replacements=None):
                     "Dependency must be pinned PyPI or an accessible Volume wheel"
                 )
             deps.add(package)
+            task_deps.add(package)
         task.pop("libraries", None)
-    return result, sorted(deps)
+        if task_scoped:
+            key = task["task_key"]
+            if key in per_task:
+                raise ValueError("Duplicate task key")
+            per_task[key] = sorted(task_deps)
+    return result, per_task if task_scoped else sorted(deps)
+
+
+def assign_task_environments(candidate, dependencies):
+    """Isolate reviewed dependencies; tasks with identical sets share one environment."""
+    result = copy.deepcopy(candidate)
+    keys = {t["task_key"] for t in result["tasks"]}
+    if set(dependencies) != keys:
+        raise ValueError("Dependency plan must cover every task exactly")
+    groups = {}
+    for task in result["tasks"]:
+        packages = dependencies[task["task_key"]]
+        if not isinstance(packages, (list, tuple)) or any(
+            not isinstance(p, str)
+            or not dependency_plan("pip install " + shlex.quote(p))["can_apply"]
+            for p in packages
+        ):
+            raise ValueError("Unreviewable environment dependency")
+        versions = {}
+        for package in packages:
+            if package.startswith("/Volumes/"):
+                continue
+            name, version = package.split("==", 1)
+            name = re.sub(r"[-_.]+", "-", name.split("[", 1)[0]).lower()
+            if name in versions and versions[name] != version:
+                raise ValueError(
+                    "Conflicting package pins within task " + task["task_key"]
+                )
+            versions[name] = version
+        group = tuple(sorted(set(packages)))
+        groups.setdefault(group, []).append(task)
+    environments = []
+    for i, (packages, tasks) in enumerate(sorted(groups.items()), 1):
+        key = "smct_env" if len(groups) == 1 else f"smct_env_{i}"
+        for task in tasks:
+            task["environment_key"] = key
+        environments.append(
+            {
+                "environment_key": key,
+                "spec": {"environment_version": "2", "dependencies": list(packages)},
+            }
+        )
+    result["environments"] = environments
+    return result
 
 
 def rewrite_python(

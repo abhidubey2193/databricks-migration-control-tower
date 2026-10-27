@@ -2,6 +2,7 @@
 
 from html import escape
 from .demo import plan_waves
+from .review import plan_review, progress_history, next_action
 
 
 def _text(value):
@@ -36,7 +37,27 @@ def render_dashboard(
     safety_reports=(),
     program_states=(),
     program_events=(),
+    search="",
+    programme="",
+    status="All",
 ):
+    def matches(value):
+        import json
+
+        return (
+            not search or search.casefold() in json.dumps(value, default=str).casefold()
+        )
+
+    program_states = [
+        s
+        for s in program_states
+        if (not programme or s.get("program_id") == programme)
+        and (status == "All" or s.get("status") == status)
+        and matches(s)
+    ]
+    program_events = [
+        e for e in program_events if not programme or e.get("program_id") == programme
+    ]
     workloads = payload.get("workloads", [])
     meta = payload.get("metadata", {})
     classic = [
@@ -49,6 +70,8 @@ def render_dashboard(
         for w in workloads
         if (object_type == "All" or w.get("kind") == object_type)
         and w.get("readiness", 0) >= minimum_score
+        and (status == "All" or w.get("status") == status)
+        and matches(w)
     ]
     findings = [
         (w.get("name", ""), f) for w in workloads for f in w.get("findings", [])
@@ -65,7 +88,7 @@ def render_dashboard(
         ("Validation FAIL", sum(r.get("passed") is False for r in reports)),
     ]
     style = """<style>
-    *{box-sizing:border-box}body{margin:0;padding:30px;background:#f3f5f9;color:#162334;font:14px system-ui,sans-serif}main{max-width:1500px;margin:auto}header{padding:30px;background:#14283f;color:#fff;border-radius:14px}header p{color:#c0d3e5}h1{font-size:30px;margin:0}h2{font-size:20px;margin:0 0 15px}h3{font-size:16px}nav{display:flex;gap:18px;flex-wrap:wrap;margin:20px 0}a{color:#226285}section{background:white;border:1px solid #dde5ed;border-radius:12px;padding:24px;margin:18px 0}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:20px}.card{background:white;border:1px solid #dde5ed;border-radius:10px;padding:18px}.card b{display:block;font-size:30px;margin-top:8px}.muted{color:#586b7e}.notice{padding:12px 16px;background:#fff5d8;border-left:4px solid #cb9300;margin:15px 0}table{width:100%;border-collapse:collapse;text-align:left}th{background:#f0f5f9;color:#38516b;font-size:12px;text-transform:uppercase}th,td{padding:12px;border-bottom:1px solid #e5ebf0;vertical-align:top}.scroll{overflow:auto}code{background:#edf1f5;padding:2px 5px;border-radius:3px}details{margin:14px 0;border:1px solid #dde5ed;border-radius:8px;padding:16px}summary{cursor:pointer;font-weight:600}.ok{color:#146b4a}.fail{color:#ab2837}footer{color:#586b7e;padding:16px}
+    *{box-sizing:border-box}body{margin:0;padding:30px;background:#f3f5f9;color:#162334;font:14px system-ui,sans-serif}main{max-width:1500px;margin:auto}header{padding:30px;background:#14283f;color:#fff;border-radius:14px}header p{color:#c0d3e5}h1{font-size:30px;margin:0}h2{font-size:20px;margin:0 0 15px}h3{font-size:16px}nav{display:flex;gap:18px;flex-wrap:wrap;margin:20px 0}a{color:#226285}section{background:white;border:1px solid #dde5ed;border-radius:12px;padding:24px;margin:18px 0}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:20px}.card{background:white;border:1px solid #dde5ed;border-radius:10px;padding:18px}.card b{display:block;font-size:30px;margin-top:8px}.muted{color:#586b7e}.notice{padding:12px 16px;background:#fff5d8;border-left:4px solid #cb9300;margin:15px 0}table{width:100%;border-collapse:collapse;text-align:left}th{background:#f0f5f9;color:#38516b;font-size:12px;text-transform:uppercase}th,td{padding:12px;border-bottom:1px solid #e5ebf0;vertical-align:top}.scroll{overflow:auto}code{background:#edf1f5;padding:2px 5px;border-radius:3px}details{margin:14px 0;border:1px solid #dde5ed;border-radius:8px;padding:16px}pre{white-space:pre-wrap;overflow-wrap:anywhere}summary{cursor:pointer;font-weight:600}.ok{color:#146b4a}.fail{color:#ab2837}footer{color:#586b7e;padding:16px}
     </style>"""
     parts = [
         '<!doctype html><html><head><meta charset="utf-8">'
@@ -133,6 +156,7 @@ def render_dashboard(
                     "Job run",
                     "Validation",
                     "Cutover",
+                    "Next action",
                 ],
                 [
                     (
@@ -145,16 +169,68 @@ def render_dashboard(
                         s.get("baseline_source", "Unknown"),
                         s.get("clone_job_id", "—"),
                         s.get("run_id", "—"),
-                        ("PASS" if s["validation"]["passed"] else "FAIL")
-                        if s.get("validation")
-                        else "Pending",
+                        (
+                            ("PASS" if s["validation"]["passed"] else "FAIL")
+                            if s.get("validation")
+                            else "Pending"
+                        ),
                         s.get("cutover_allowed", False),
+                        next_action(s),
                     )
                     for s in program_states
                 ],
             )
             + "</section>"
         )
+    history = progress_history(program_events)
+    if history:
+        parts.append(
+            '<section><h2>Programme progress history</h2><p class="muted">End-of-day programme workload counts. The same source in different programmes is counted separately. Historical state is reconstructed from journal revisions; repeated events do not count as additional workloads. Status and search filters do not change this history.</p>'
+            + _table(
+                [
+                    "Day",
+                    "Tracked real",
+                    "Blocked",
+                    "Validated",
+                    "Migrated paused",
+                    "Migrated active",
+                    "Synthetic",
+                ],
+                [tuple(r.values()) for r in history],
+            )
+            + "</section>"
+        )
+    if program_states:
+        parts.append(
+            '<section><h2>Plan review</h2><p class="muted">Inspect task dependencies, environment packages and the proposed settings diff. This is a read-only view; approve the bound plan through fleet_controller. Validation clone changes may include isolated output paths.</p>'
+        )
+        for state in program_states:
+            review = plan_review(state)
+            if not review:
+                continue
+            parts.append(
+                "<details><summary>"
+                + _text(state.get("program_id", ""))
+                + " / "
+                + _text(state.get("name", state["workload_id"]))
+                + "</summary>"
+                + _table(
+                    ["Task", "Depends on", "Environment", "Packages"],
+                    [
+                        (
+                            t["task"],
+                            t["depends_on"],
+                            t["environment"],
+                            t["dependencies"],
+                        )
+                        for t in review["tasks"]
+                    ],
+                )
+                + "<pre>"
+                + _text(review["patch"])
+                + "</pre></details>"
+            )
+        parts.append("</section>")
     rows = [
         (
             w.get("workload_id", ""),
@@ -289,14 +365,36 @@ def render_dashboard(
         '</section><section id="cost"><h2>Cost and DBUs</h2><p>Run-attributed DBUs and USD list cost are shown when billing records and prices are available. List cost excludes discounts and cloud infrastructure. Missing billing is not zero cost.</p>'
     )
     comparisons = [
-        (s.get("program_id", ""), s.get("name", ""), b.get("status", ""),
-         b.get("classic", {}).get("dbus"), b.get("serverless", {}).get("dbus"),
-         b.get("classic", {}).get("list_cost_usd"), b.get("serverless", {}).get("list_cost_usd"),
-         b.get("observed_savings_pct"))
-        for s in program_states for b in [s.get("billing") or {}] if "classic" in b
+        (
+            s.get("program_id", ""),
+            s.get("name", ""),
+            b.get("status", ""),
+            b.get("classic", {}).get("dbus"),
+            b.get("serverless", {}).get("dbus"),
+            b.get("classic", {}).get("list_cost_usd"),
+            b.get("serverless", {}).get("list_cost_usd"),
+            b.get("observed_savings_pct"),
+        )
+        for s in program_states
+        for b in [s.get("billing") or {}]
+        if "classic" in b
     ]
     if comparisons:
-        parts.append(_table(["Programme", "Workload", "Billing status", "Classic DBUs", "Serverless DBUs", "Classic list USD", "Serverless list USD", "Observed saving %"], comparisons))
+        parts.append(
+            _table(
+                [
+                    "Programme",
+                    "Workload",
+                    "Billing status",
+                    "Classic DBUs",
+                    "Serverless DBUs",
+                    "Classic list USD",
+                    "Serverless list USD",
+                    "Observed saving %",
+                ],
+                comparisons,
+            )
+        )
     observed = [
         (
             s.get("program_id", ""),

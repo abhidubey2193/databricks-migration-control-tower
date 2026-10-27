@@ -21,7 +21,13 @@ importlib.invalidate_caches()
 dashboard_module = importlib.reload(dashboard_module)
 render_dashboard = dashboard_module.render_dashboard
 
-for key, default in [("catalog", "auto"), ("schema", "serverless_migration")]:
+for key, default in [
+    ("catalog", "auto"),
+    ("schema", "serverless_migration"),
+    ("search", ""),
+    ("programme", ""),
+    ("status", "All"),
+]:
     dbutils.widgets.text(key, default)
 dbutils.widgets.dropdown("object_type", "All", ["All", "JOB", "NOTEBOOK", "CLUSTER"])
 dbutils.widgets.dropdown("minimum_score", "0", ["0", "25", "50", "75", "100"])
@@ -48,6 +54,9 @@ html = render_dashboard(
     scanned_at=saved["scanned_at"],
     object_type=dbutils.widgets.get("object_type"),
     minimum_score=int(dbutils.widgets.get("minimum_score")),
+    search=dbutils.widgets.get("search"),
+    programme=dbutils.widgets.get("programme"),
+    status=dbutils.widgets.get("status"),
 )
 displayHTML(html)
 print(

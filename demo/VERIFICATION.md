@@ -4,9 +4,11 @@
 
 ## Local checks
 
-`python -m pytest -q`: **136 passed**.
+`python -m pytest -q`: **144 passed**.
 
 Coverage includes the general fleet lifecycle, two-sided 11-task execution through a simulated Jobs service, classic failure isolation, approval identity, code/config/contract drift, run recovery, Bundle CAS, paused cutover/activation/rollback, lease exclusion, credential rejection, dependency/AST/SQL proposals, billing attribution, shared dashboard reading and real local Spark comparison. Python compilation and `git diff --check` also pass. GitHub Actions passed for the full fleet implementation, commit `d8cdb6d` ([run](https://github.com/abhidubey2193/databricks-migration-control-tower/actions/runs/40559364738)), including the regression for literal dotted column names and keys named count.
+
+The task-environment and operator-review update adds regression checks for cluster/task dependency isolation, conflicting pins, environment drift after approval, daily revision-based progress, programme filtering and escaped plan diffs. Streamlit App smoke checks passed for both local evidence and Unity Catalog mode with a simulated SQL service, including programme and search controls. These changes have local regression coverage; the workspace outputs below predate this update.
 
 ## Workspace checks
 
@@ -27,7 +29,7 @@ The validation baseline is synthetic. The trigger-safety source was already serv
 
 ## New implementation checks
 
-- 136 local tests passed, including 4 real local Spark tests (Spark 3.5.9, Java 17). Jobs API lifecycle tests use a simulated service; they are not live classic execution.
+- 144 local tests passed, including 4 real local Spark tests (Spark 3.5.9, Java 17). Jobs API lifecycle tests use a simulated service; they are not live classic execution.
 - Bundle configuration was checked against the installed official CLI 1.22.1 JSON schema with zero schema errors. Authentication/deployment is a separate check.
 - Compilation and selected Ruff correctness checks passed.
 - Operator-supplied `workspace_acceptance` output confirms ready job `537999279549598` / run `56148970506685` and eleven-task job `789003533455441` / run `53838660438101` both VALIDATED. Both positive comparisons passed; both negative controls failed. The programme recorded 24 audit events and remediation self-checks passed. Baselines remain generated, not classic runs.

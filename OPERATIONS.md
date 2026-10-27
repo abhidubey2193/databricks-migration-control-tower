@@ -34,7 +34,9 @@ Parameter names can be mapped. For a DAG where a task reads its parent's output,
 
 Run `assess`, then `plan`. Planning resolves shared classic cluster configurations, retrieves init scripts and creates a dependency translation. Only complete pinned pip-install scripts can be translated automatically. Unsupported shell steps block planning. S3 reads use the caller's ambient AWS credentials; where unavailable, use an authorized Workspace/Volume copy. No script is executed.
 
-PyPI packages and Volume wheels become serverless environment dependencies. Egg/JAR/Maven replacements require an explicit `library_replacements` mapping; rebuilding a binary is an owner task. `remediation_workbench` supplies reviewed JAR packaging for current serverless support.
+PyPI packages and Volume wheels become serverless environment dependencies. Init-script packages apply only to tasks on the corresponding cluster. Task libraries stay scoped to their task. Equal package sets share an environment; different sets receive separate environments, so independent tasks can use different package versions. Conflicting pins within a single task stop planning. Egg/JAR/Maven replacements require an explicit `library_replacements` mapping; rebuilding a binary is an owner task. `remediation_workbench` supplies reviewed JAR packaging for current serverless support.
+
+Open `control_tower_dashboard` (or the App with Unity Catalog snapshots) to inspect each plan’s task graph, environment packages, settings diff and suggested next action. Use `search`, `status` and `programme` to narrow review; programme selection applies to plans and history. Daily history counts programme workloads at their latest revision that day, with synthetic workloads separate.
 
 Inspect source findings, both validation definitions, production proposal, notebook hashes, input version and output tables. Set `reason`, select a wave and run `approve`. A plan change cannot reuse an approval. Source or code changes require a fresh reviewed programme/workload ID.
 

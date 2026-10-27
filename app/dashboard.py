@@ -1,4 +1,5 @@
 """Read-only migration evidence dashboard; no schedule activation or promotion."""
+
 import json
 import os
 import pandas as pd
@@ -7,108 +8,244 @@ from smct.store import Store
 from smct.demo import plan_waves
 from smct.ab import safe_table
 
-st.set_page_config(page_title='Migration Control Tower',page_icon='◈',layout='wide')
-st.title('Serverless Migration Control Tower')
-st.caption('Workspace inventory · readiness · migration waves · validation · governance')
-mode=st.sidebar.radio('Data source',['SQLite control plane','Unity Catalog snapshots','JSON inventory'])
-db=None
-reports=[]
-if mode=='SQLite control plane':
-    db=Store(os.getenv('SMCT_DB','smct.sqlite'))
-    workloads=db.workloads()
-    reports=[dict(db.validation(w['workload_id']),workload=w['name']) for w in workloads if db.validation(w['workload_id'])]
-elif mode=='Unity Catalog snapshots':
-    catalog=st.sidebar.text_input('Catalog',os.getenv('SMCT_CATALOG','auto'))
-    schema=st.sidebar.text_input('Schema',os.getenv('SMCT_SCHEMA','serverless_migration'))
-    warehouse=st.sidebar.text_input('Warehouse ID',os.getenv('SMCT_WAREHOUSE_ID',''))
+st.set_page_config(page_title="Migration Control Tower", page_icon="◈", layout="wide")
+st.title("Serverless Migration Control Tower")
+st.caption(
+    "Workspace inventory · readiness · migration waves · validation · governance"
+)
+mode = st.sidebar.radio(
+    "Data source", ["SQLite control plane", "Unity Catalog snapshots", "JSON inventory"]
+)
+db = None
+reports = []
+if mode == "SQLite control plane":
+    db = Store(os.getenv("SMCT_DB", "smct.sqlite"))
+    workloads = db.workloads()
+    reports = [
+        dict(db.validation(w["workload_id"]), workload=w["name"])
+        for w in workloads
+        if db.validation(w["workload_id"])
+    ]
+elif mode == "Unity Catalog snapshots":
+    catalog = st.sidebar.text_input("Catalog", os.getenv("SMCT_CATALOG", "auto"))
+    schema = st.sidebar.text_input(
+        "Schema", os.getenv("SMCT_SCHEMA", "serverless_migration")
+    )
+    warehouse = st.sidebar.text_input(
+        "Warehouse ID", os.getenv("SMCT_WAREHOUSE_ID", "")
+    )
     if not warehouse:
-        st.info('Set a SQL warehouse ID. Grant the app principal SELECT on the evidence schema and CAN USE on the warehouse.')
+        st.info(
+            "Set a SQL warehouse ID. Grant the app principal SELECT on the evidence schema and CAN USE on the warehouse."
+        )
         st.stop()
     from databricks.sdk import WorkspaceClient
     from databricks.sdk.service.sql import StatementState
     from smct.evidence import load_evidence
     from smct.notebook_dashboard import render_dashboard
-    client=WorkspaceClient()
+
+    client = WorkspaceClient()
+
     def query(statement):
-        response=client.statement_execution.execute_statement(warehouse_id=warehouse,statement=statement,wait_timeout='50s',row_limit=5001)
-        if response.status.state!=StatementState.SUCCEEDED:
-            raise RuntimeError(f'Warehouse query did not succeed: {response.status.state}')
+        response = client.statement_execution.execute_statement(
+            warehouse_id=warehouse,
+            statement=statement,
+            wait_timeout="50s",
+            row_limit=5001,
+        )
+        if response.status.state != StatementState.SUCCEEDED:
+            raise RuntimeError(
+                f"Warehouse query did not succeed: {response.status.state}"
+            )
         if response.manifest and response.manifest.truncated:
-            raise RuntimeError('Evidence query truncated; narrow the scope')
-        columns=[c.name for c in response.manifest.schema.columns]
-        chunk=response.result
-        data=[]
+            raise RuntimeError("Evidence query truncated; narrow the scope")
+        columns = [c.name for c in response.manifest.schema.columns]
+        chunk = response.result
+        data = []
         while chunk:
             data.extend(chunk.data_array or [])
-            if len(data)>5001:
-                raise ValueError('Evidence query exceeds cap')
+            if len(data) > 5001:
+                raise ValueError("Evidence query exceeds cap")
             if chunk.next_chunk_index is None:
                 break
-            chunk=client.statement_execution.get_statement_result_chunk_n(response.statement_id,chunk.next_chunk_index)
-        return [dict(zip(columns,row)) for row in data]
+            chunk = client.statement_execution.get_statement_result_chunk_n(
+                response.statement_id, chunk.next_chunk_index
+            )
+        return [dict(zip(columns, row)) for row in data]
+
     try:
-        if catalog=='auto':
-            catalog=query('SELECT current_catalog() AS catalog')[0]['catalog']
-        evidence=load_evidence(query,catalog,schema)
-        html=render_dashboard(**evidence)
-        st.components.v1.html(html,height=1500,scrolling=True)
+        if catalog == "auto":
+            catalog = query("SELECT current_catalog() AS catalog")[0]["catalog"]
+        evidence = load_evidence(query, catalog, schema)
+        search = st.text_input(
+            "Search fleet and plans", placeholder="Name, owner, limitation or package"
+        )
+        programme = st.selectbox(
+            "Programme (plans and history)",
+            [""] + sorted({s["program_id"] for s in evidence["program_states"]}),
+        )
+        status = st.selectbox(
+            "Status",
+            ["All"]
+            + sorted(
+                {s["status"] for s in evidence["program_states"]}
+                | {
+                    w.get("status", "DISCOVERED")
+                    for w in evidence["payload"].get("workloads", [])
+                }
+            ),
+        )
+        html = render_dashboard(
+            **evidence, search=search, programme=programme, status=status
+        )
+        st.components.v1.html(html, height=1500, scrolling=True)
     except Exception as exc:
-        st.error(f'Evidence unavailable: {exc}')
+        st.error(f"Evidence unavailable: {exc}")
     st.stop()
 
 else:
-    uploaded=st.sidebar.file_uploader('Upload inventory or demo evidence JSON',type='json')
-    if not uploaded: st.info('Upload JSON generated by smct scan or smct demo.'); st.stop()
-    payload=json.load(uploaded)
-    workloads=payload.get('workloads',[])
-    reports=list(payload.get('validation',{}).values())
-    if payload.get('metadata',{}).get('errors'): st.warning('Partial inventory: '+str(payload['metadata']['errors']))
-if not workloads: st.info('No inventory records. Run smct demo or the Bundle fleet scan.'); st.stop()
-synthetic=any(w.get('attributes',{}).get('synthetic') for w in workloads)
-if synthetic: st.warning('SYNTHETIC DEMONSTRATION — no classic or serverless job execution is represented by these local records.')
-records=[{'ID':w['workload_id'],'Name':w['name'],'Type':w['kind'],'Compute':w['compute_mode'],'Score':w['readiness'],'Status':w['status'],'Eligible':w['eligible'],'Blockers':sum(f['severity']=='blocker' for f in w['findings'])} for w in workloads]
-df=pd.DataFrame(records)
-classic=df[(df.Type=='JOB')&(df.Compute=='classic')]
-validated=int((classic.Status=='VALIDATED').sum())
-metrics=[('Classic jobs',len(classic)),('Ready',int(classic.Eligible.sum())),('Blocked',int((classic.Blockers>0).sum())),('Approved',sum(bool(db.approval(w['workload_id'])) for w in workloads) if db else 0),('Cloned',sum(bool(db.migration(w['workload_id'])) for w in workloads) if db else 0),('Validated',validated)]
-for col,(name,value) in zip(st.columns(6),metrics): col.metric(name,value)
-st.caption('Approval and clone counts require local control-plane records. A validation PASS is not a completed migration.')
-tabs=st.tabs(['Overview','Fleet Inventory','Readiness & Remediation','Migration Waves','Validation','Cost','Governance'])
+    uploaded = st.sidebar.file_uploader(
+        "Upload inventory or demo evidence JSON", type="json"
+    )
+    if not uploaded:
+        st.info("Upload JSON generated by smct scan or smct demo.")
+        st.stop()
+    payload = json.load(uploaded)
+    workloads = payload.get("workloads", [])
+    reports = list(payload.get("validation", {}).values())
+    if payload.get("metadata", {}).get("errors"):
+        st.warning("Partial inventory: " + str(payload["metadata"]["errors"]))
+if not workloads:
+    st.info("No inventory records. Run smct demo or the Bundle fleet scan.")
+    st.stop()
+synthetic = any(w.get("attributes", {}).get("synthetic") for w in workloads)
+if synthetic:
+    st.warning(
+        "SYNTHETIC DEMONSTRATION — no classic or serverless job execution is represented by these local records."
+    )
+records = [
+    {
+        "ID": w["workload_id"],
+        "Name": w["name"],
+        "Type": w["kind"],
+        "Compute": w["compute_mode"],
+        "Score": w["readiness"],
+        "Status": w["status"],
+        "Eligible": w["eligible"],
+        "Blockers": sum(f["severity"] == "blocker" for f in w["findings"]),
+    }
+    for w in workloads
+]
+df = pd.DataFrame(records)
+classic = df[(df.Type == "JOB") & (df.Compute == "classic")]
+validated = int((classic.Status == "VALIDATED").sum())
+metrics = [
+    ("Classic jobs", len(classic)),
+    ("Ready", int(classic.Eligible.sum())),
+    ("Blocked", int((classic.Blockers > 0).sum())),
+    (
+        "Approved",
+        sum(bool(db.approval(w["workload_id"])) for w in workloads) if db else 0,
+    ),
+    (
+        "Cloned",
+        sum(bool(db.migration(w["workload_id"])) for w in workloads) if db else 0,
+    ),
+    ("Validated", validated),
+]
+for col, (name, value) in zip(st.columns(6), metrics):
+    col.metric(name, value)
+st.caption(
+    "Approval and clone counts require local control-plane records. A validation PASS is not a completed migration."
+)
+tabs = st.tabs(
+    [
+        "Overview",
+        "Fleet Inventory",
+        "Readiness & Remediation",
+        "Migration Waves",
+        "Validation",
+        "Cost",
+        "Governance",
+    ]
+)
 with tabs[0]:
-    completed=int((classic.Status=='MIGRATED').sum())
-    st.metric('Migration completion',f'{completed / len(classic):.0%}' if len(classic) else 'N/A')
+    completed = int((classic.Status == "MIGRATED").sum())
+    st.metric(
+        "Migration completion",
+        f"{completed / len(classic):.0%}" if len(classic) else "N/A",
+    )
     st.progress(completed / len(classic) if len(classic) else 0)
-    st.bar_chart(df.groupby('Status').size())
+    st.bar_chart(df.groupby("Status").size())
 with tabs[1]:
-    types=st.multiselect('Object types',sorted(df.Type.unique()),default=sorted(df.Type.unique()))
-    st.dataframe(df[df.Type.isin(types)],hide_index=True,use_container_width=True)
+    types = st.multiselect(
+        "Object types", sorted(df.Type.unique()), default=sorted(df.Type.unique())
+    )
+    st.dataframe(df[df.Type.isin(types)], hide_index=True, use_container_width=True)
     for w in workloads:
-        if w.get('attributes',{}).get('referencing_jobs'): st.caption(f"{w['name']} → {', '.join(w['attributes']['referencing_jobs'])}")
+        if w.get("attributes", {}).get("referencing_jobs"):
+            st.caption(
+                f"{w['name']} → {', '.join(w['attributes']['referencing_jobs'])}"
+            )
 with tabs[2]:
-    findings=[{'Workload':w['name'],**f,'Progress':'Needs review'} for w in workloads for f in w['findings']]
-    if findings: st.dataframe(pd.DataFrame(findings),hide_index=True,use_container_width=True)
-    else: st.info('No metadata findings. Notebook semantics and runtime compatibility still require validation.')
+    findings = [
+        {"Workload": w["name"], **f, "Progress": "Needs review"}
+        for w in workloads
+        for f in w["findings"]
+    ]
+    if findings:
+        st.dataframe(pd.DataFrame(findings), hide_index=True, use_container_width=True)
+    else:
+        st.info(
+            "No metadata findings. Notebook semantics and runtime compatibility still require validation."
+        )
 with tabs[3]:
-    st.dataframe(pd.DataFrame(plan_waves(workloads)),hide_index=True,use_container_width=True)
-    st.caption('Deterministic readiness order. Cross-job dependencies require platform-owner review before execution. Use smct waves to persist the plan audit event.')
+    st.dataframe(
+        pd.DataFrame(plan_waves(workloads)), hide_index=True, use_container_width=True
+    )
+    st.caption(
+        "Deterministic readiness order. Cross-job dependencies require platform-owner review before execution. Use smct waves to persist the plan audit event."
+    )
 with tabs[4]:
-    if not reports: st.info('No validation reports recorded.')
-    for i,v in enumerate(reports):
-        with st.expander(f"{'PASS' if v['passed'] else 'FAIL'} · {v.get('workload',v.get('scenario',str(i+1)))} · {v.get('baseline_source','baseline provenance unspecified')}",expanded=True):
-            if v.get('baseline_source')=='imported_synthetic': st.warning('Imported synthetic baseline. This report does not establish classic compute execution.')
+    if not reports:
+        st.info("No validation reports recorded.")
+    for i, v in enumerate(reports):
+        with st.expander(
+            f"{'PASS' if v['passed'] else 'FAIL'} · {v.get('workload',v.get('scenario',str(i+1)))} · {v.get('baseline_source','baseline provenance unspecified')}",
+            expanded=True,
+        ):
+            if v.get("baseline_source") == "imported_synthetic":
+                st.warning(
+                    "Imported synthetic baseline. This report does not establish classic compute execution."
+                )
             st.json(v)
 with tabs[5]:
-    st.info('Live DBU/cost comparison unavailable. No savings or fabricated billing data are shown.')
+    st.info(
+        "Live DBU/cost comparison unavailable. No savings or fabricated billing data are shown."
+    )
     from smct.cost import BILLING_SQL
-    st.code(BILLING_SQL,language='sql')
-    st.caption('Requires system.billing access, comparable execution windows and workload-level attribution. Free Edition may not expose billing data.')
+
+    st.code(BILLING_SQL, language="sql")
+    st.caption(
+        "Requires system.billing access, comparable execution windows and workload-level attribution. Free Edition may not expose billing data."
+    )
 with tabs[6]:
-    st.caption('Read-only governance. Approval identity is manually entered locally, not authenticated enterprise authorization. Production cutover remains manual.')
+    st.caption(
+        "Read-only governance. Approval identity is manually entered locally, not authenticated enterprise authorization. Production cutover remains manual."
+    )
     if db:
-        migration_rows=[]
+        migration_rows = []
         for w in workloads:
-            m=db.migration(w['workload_id'])
-            if m: migration_rows.append({'Workload':w['name'],**m})
-        st.dataframe(pd.DataFrame(migration_rows),hide_index=True,use_container_width=True)
-        st.dataframe(pd.DataFrame(db.events()),hide_index=True,use_container_width=True)
-    else: st.info('Approvals, backups and detailed audit history require the SQLite control plane. UC mode displays persisted inventory and demo validation only.')
+            m = db.migration(w["workload_id"])
+            if m:
+                migration_rows.append({"Workload": w["name"], **m})
+        st.dataframe(
+            pd.DataFrame(migration_rows), hide_index=True, use_container_width=True
+        )
+        st.dataframe(
+            pd.DataFrame(db.events()), hide_index=True, use_container_width=True
+        )
+    else:
+        st.info(
+            "Approvals, backups and detailed audit history require the SQLite control plane. UC mode displays persisted inventory and demo validation only."
+        )
