@@ -4,7 +4,8 @@
 - [x] README includes setup, design and known limits.
 - [x] General fleet execution, real-classic adapter, large DAGs, remediation, costs, Bundle writeback, cutover/rollback and recovery have local regression coverage.
 - [x] 136 local tests, including real Spark comparison; official CLI Bundle schema check passed.
-- [ ] Execute the new workspace_acceptance notebook and authenticated Bundle deployment.
+- [x] Workspace acceptance: real 1-task/11-task serverless jobs validated; both negative controls rejected; 24 audit events.
+- [ ] Authenticated Bundle deployment.
 - [ ] Genuine classic A/B acceptance needs a classic-capable sandbox; current workspace is serverless-only.
 - [x] Connected programme reached VALIDATED in the sandbox; intentional negative control failed.
 - [x] Refreshed dashboard rendered with 14 inventory objects, 1 validated programme workload and 34 programme audit events.

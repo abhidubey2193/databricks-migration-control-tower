@@ -62,7 +62,7 @@ SMCT_DB=demo-output/smct.sqlite python -m streamlit run app/dashboard.py
 
 Tests include the fleet lifecycle, 11-task execution through a simulated Jobs service, crash recovery, authenticated approval, source drift, Bundle compare-and-swap, cutover/activation/rollback, billing and real local Spark comparisons. See [verification](demo/VERIFICATION.md) for counts and the distinction between simulated, local Spark and workspace checks.
 
-Operator-supplied workspace evidence currently shows 14 discovered objects, one validated connected serverless workload, passing and intentionally failing comparisons, a scheduling-safety fixture and a rendered programme dashboard. The new fleet and acceptance paths need workspace execution before being described as live-tested.
+Operator-supplied workspace evidence currently shows 14 discovered objects, one validated connected serverless workload, passing and intentionally failing comparisons, a scheduling-safety fixture and a rendered programme dashboard. The subsequent workspace acceptance completed both the one-task and eleven-task serverless Jobs, with passing comparisons and failing negative controls (24 audit events). The general classic fleet path still needs suitable workspace acceptance.
 
 ## Boundaries
 

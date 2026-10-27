@@ -1,0 +1,37 @@
+{
+  "evidence_source": "user_pasted_notebook_output",
+  "independently_retrieved": false,
+  "notebook": "notebooks/workspace_acceptance.py",
+  "result": {
+    "program_id": "acceptance_acceptance_v1_67d20094aa42",
+    "remediation_self_checks": "passed",
+    "classic_execution_claimed": false,
+    "workloads": {
+      "large": {
+        "status": "VALIDATED",
+        "clone_job_id": 789003533455441,
+        "run_id": 53838660438101,
+        "wave": 2,
+        "task_count": 11,
+        "validation_passed": true,
+        "negative_control_passed": false
+      },
+      "ready": {
+        "status": "VALIDATED",
+        "clone_job_id": 537999279549598,
+        "run_id": 56148970506685,
+        "wave": 1,
+        "task_count": 1,
+        "validation_passed": true,
+        "negative_control_passed": false
+      }
+    },
+    "audit_events": 24
+  },
+  "limits": [
+    "Both references and input data are generated; no classic execution is claimed.",
+    "The summary reports real serverless Jobs IDs and successful distributed comparisons; raw Jobs responses and Delta history were not independently retrieved.",
+    "negative_control_passed=false means deliberately incorrect output was rejected as expected.",
+    "This acceptance run does not verify genuine classic A/B, cost savings, production cutover/rollback or authenticated Bundle/App deployment."
+  ]
+}
