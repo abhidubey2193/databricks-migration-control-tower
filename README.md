@@ -57,6 +57,8 @@ The CLI also provides `approve`, `clone`, `validate`, `gate` and `audit`; use `s
 
 ## Design
 
+[Architecture and failure handling](ARCHITECTURE.md) describes the component boundaries, state model and production tradeoffs.
+
 - Discovery and assessment share one Python engine across the CLI and notebooks. Inventory records missing permissions and notebook caps.
 - The connected programme appends state revisions to a single Delta table, `program_events`. Each event carries the programme/workload ID, actor, status and evidence snapshot. The older CLI keeps its state in SQLite.
 - Plans are fingerprinted before approval. The approved source definition is backed up before clone creation. Clone readback must match the plan and have no triggers.

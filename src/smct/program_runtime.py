@@ -17,6 +17,11 @@ def check_candidate(actual, planned):
         raise ValueError(
             "Unexpected job parameters, Git source or environment variables"
         )
+    if actual.get("name") != planned.get("name"):
+        raise ValueError("Clone name drift")
+    for key, value in planned.get("tags", {}).items():
+        if actual.get("tags", {}).get(key) != value:
+            raise ValueError("Clone tags drift")
     tasks = actual.get("tasks") or []
     expected = planned.get("tasks") or []
     if len(tasks) != len(expected):
@@ -49,9 +54,11 @@ def check_candidate(actual, planned):
 def create_or_recover_clone(w, program, wid):
     state = program.prepare_clone(wid)
     planned = copy.deepcopy(state["candidate"])
-    planned.setdefault("tags", {}).update(
-        smct_program=program.program_id, smct_workload=wid
-    )
+    if (
+        planned.get("tags", {}).get("smct_program") != program.program_id
+        or planned.get("tags", {}).get("smct_workload") != wid
+    ):
+        raise ValueError("Approved plan is not bound to this programme/workload")
     # Exact tagged discovery permits recovery if creation succeeded before an interruption.
     matches = []
     for job in w.jobs.list():

@@ -35,7 +35,7 @@ Deploy/reproduce:
 Clone the repo as a Git folder and select enhanced-control-tower. On authorized Serverless compute, use catalog=auto and schema=serverless_migration. Run program_demo with action=assess, inspect its plan, then action=run. Rerun with the same program_id if a job is still executing. Run fleet_scan and control_tower_dashboard to inspect results. The earlier standalone demos remain available.
 
 Tests:
-82 local tests pass. Earlier workspace outputs cover a complete 9-object scan, rendered dashboard, matching/mismatched comparison and live scheduling-safety fixture. The new connected route requires a workspace run before claiming it as tested.
+87 local tests pass. Earlier workspace outputs cover a complete 9-object scan, rendered dashboard, matching/mismatched comparison and live scheduling-safety fixture. The new connected route requires a workspace run before claiming it as tested.
 
 Known gaps:
 No genuine classic execution, automatic production cutover/rollback, enterprise approval service, verified savings or completed Bundle/App deployment test. The programme runner is single-writer. The required video and final access checks must be completed before sending.

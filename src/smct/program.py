@@ -7,6 +7,7 @@ conflicting revisions but is not a distributed lock or enterprise approval servi
 import copy
 import hashlib
 from datetime import datetime, timezone
+from typing import Protocol
 
 from .assessment import check_job, score
 from .models import Finding
@@ -15,6 +16,11 @@ from .orchestration import build_serverless_clone, digest, validate_task_graph
 
 def utcnow():
     return datetime.now(timezone.utc).isoformat()
+
+
+class Journal(Protocol):
+    def events(self, program_id: str) -> list[dict]: ...
+    def append(self, event: dict, expected_sequence: int) -> None: ...
 
 
 class MemoryJournal:
@@ -37,7 +43,7 @@ class MemoryJournal:
 
 
 class Program:
-    def __init__(self, journal, program_id, actor):
+    def __init__(self, journal: Journal, program_id: str, actor: str):
         if not program_id or not actor:
             raise ValueError("Program ID and authenticated actor are required")
         self.journal = journal
@@ -53,10 +59,25 @@ class Program:
     def states(self):
         latest = {}
         seen = set()
+        revisions = {}
         for event in self.events():
             key = (event["workload_id"], event["sequence"])
             if key in seen:
                 raise RuntimeError("Duplicate journal revision; stop and reconcile")
+            expected = revisions.get(event["workload_id"], 0) + 1
+            if event["sequence"] != expected:
+                raise RuntimeError("Journal revision gap; stop and reconcile")
+            snapshot = event["state"]
+            if (
+                snapshot.get("workload_id") != event["workload_id"]
+                or snapshot.get("sequence") != event["sequence"]
+            ):
+                raise RuntimeError("Journal state does not match its event")
+            if snapshot.get("schema_version") != 1:
+                raise RuntimeError(
+                    "Unsupported programme state schema; use a new program_id after upgrading"
+                )
+            revisions[event["workload_id"]] = event["sequence"]
             seen.add(key)
             latest[event["workload_id"]] = copy.deepcopy(event["state"])
         return latest
@@ -113,6 +134,7 @@ class Program:
                 )
                 readiness, eligible = score(findings)
         state = {
+            "schema_version": 1,
             "workload_id": wid,
             "name": settings.get("name", wid),
             "owner": owner,
@@ -152,6 +174,9 @@ class Program:
             )
         candidate = build_serverless_clone(
             state["source_settings"], allow_large=allow_large
+        )
+        candidate.setdefault("tags", {}).update(
+            smct_program=self.program_id, smct_workload=wid
         )
         state.update(
             candidate=candidate,
@@ -308,6 +333,12 @@ class Program:
             raise ValueError("Typed schema comparison required")
         if report.get("baseline_source") != state["baseline_source"]:
             raise ValueError("Baseline provenance mismatch")
+        if (
+            report.get("workload_id") != wid
+            or report.get("program_id") != self.program_id
+            or report.get("serverless_run_id") != state["run_id"]
+        ):
+            raise ValueError("Validation report workload/run binding mismatch")
         baseline = state.get("baseline", {})
         if report.get("baseline_table") != baseline.get("table") or report.get(
             "baseline_table_version"

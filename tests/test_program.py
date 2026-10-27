@@ -56,6 +56,9 @@ def report(passed=True):
         key_columns=["id"],
     )
     r.update(
+        workload_id="ready",
+        program_id="demo",
+        serverless_run_id=99,
         baseline_source="imported_synthetic",
         baseline_table="c.s.baseline",
         baseline_table_version=0,
@@ -385,3 +388,48 @@ def test_init_script_is_blocked_during_programme_assessment():
     ]
     p = assessed(source)
     assert p.state("ready")["status"] == "BLOCKED"
+
+
+def test_missing_audit_revision_blocks_state_recovery():
+    p = approved()
+    p.journal.rows.pop(1)
+    with pytest.raises(RuntimeError, match="revision gap"):
+        p.states()
+
+
+def test_snapshot_cannot_be_relabelled_as_another_workload():
+    p = assessed()
+    p.journal.rows[0]["state"]["workload_id"] = "different"
+    with pytest.raises(RuntimeError, match="does not match"):
+        p.states()
+
+
+def test_unsupported_state_schema_is_not_silently_loaded():
+    p = assessed()
+    p.journal.rows[0]["state"]["schema_version"] = 999
+    with pytest.raises(RuntimeError, match="Unsupported"):
+        p.states()
+
+
+def test_infrastructure_tags_are_in_approved_candidate_digest():
+    p = approved()
+    state = p.state("ready")
+    assert state["candidate"]["tags"]["smct_program"] == "demo"
+    assert state["candidate"]["tags"]["smct_workload"] == "ready"
+    w = Workspace()
+    create_or_recover_clone(w, p, "ready")
+    assert w.settings[10]["tags"] == state["candidate"]["tags"]
+
+
+def test_wrong_workload_validation_report_cannot_be_attached():
+    p, actual = executed()
+    r = report()
+    r["workload_id"] = "different"
+    with pytest.raises(ValueError, match="workload/run binding"):
+        p.validate(
+            "ready",
+            r,
+            run_id=99,
+            source_settings=p.state("ready")["source_settings"],
+            clone_settings=actual,
+        )

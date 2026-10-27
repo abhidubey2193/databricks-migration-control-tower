@@ -4,9 +4,9 @@
 
 ## Local checks
 
-`python -m pytest -q`: **82 passed**.
+`python -m pytest -q`: **87 passed**.
 
-Coverage includes record comparison, clone restrictions, the programme state machine, approval ownership, configuration drift, pinned baseline binding, idempotent run requests, interrupted clone recovery and dashboard rendering. Python compilation and `git diff --check` also pass.
+Coverage includes record comparison, clone restrictions, the programme state machine, approval ownership, configuration drift, pinned baseline binding, idempotent run requests, interrupted clone recovery and dashboard rendering. Python compilation and `git diff --check` also pass. GitHub Actions passed for commit `6c72aba` ([run](https://github.com/abhidubey2193/databricks-migration-control-tower/actions/runs/40538800697)); the subsequent architecture-review changes have 87 local passing tests.
 
 ## Workspace checks
 
