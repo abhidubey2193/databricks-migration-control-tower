@@ -1,0 +1,154 @@
+{
+  "evidence_source": "user_pasted_notebook_output",
+  "independently_retrieved": false,
+  "notebook": "notebooks/validation_demo.py",
+  "evidence_destination": "workspace.serverless_migration",
+  "reports": [
+    {
+      "classic_rows": 3,
+      "serverless_rows": 3,
+      "columns_equal": true,
+      "schema_equal": true,
+      "typed_schema_compared": true,
+      "classic_schema": {
+        "type": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "long",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "amount",
+            "type": "long",
+            "nullable": true,
+            "metadata": {}
+          }
+        ]
+      },
+      "serverless_schema": {
+        "type": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "long",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "amount",
+            "type": "long",
+            "nullable": true,
+            "metadata": {}
+          }
+        ]
+      },
+      "classic_null_counts": {
+        "amount": 0,
+        "id": 0
+      },
+      "serverless_null_counts": {
+        "amount": 0,
+        "id": 0
+      },
+      "thresholds": {
+        "missing_records": 0,
+        "extra_records": 0
+      },
+      "ignored_columns": [],
+      "comparison_version": 2,
+      "key_columns": [
+        "id"
+      ],
+      "duplicate_key_groups": {
+        "classic": 1,
+        "serverless": 1
+      },
+      "baseline_source": "imported_synthetic",
+      "target_source": "executed_notebook_transformation",
+      "validated_at": "2026-10-27T15:09:18.584506+00:00",
+      "scenario": "PASS",
+      "passed": true,
+      "missing_records": 0,
+      "extra_records": 0,
+      "changed_key_groups": 0
+    },
+    {
+      "classic_rows": 3,
+      "serverless_rows": 3,
+      "columns_equal": true,
+      "schema_equal": true,
+      "typed_schema_compared": true,
+      "classic_schema": {
+        "type": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "long",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "amount",
+            "type": "long",
+            "nullable": true,
+            "metadata": {}
+          }
+        ]
+      },
+      "serverless_schema": {
+        "type": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "long",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "amount",
+            "type": "long",
+            "nullable": true,
+            "metadata": {}
+          }
+        ]
+      },
+      "classic_null_counts": {
+        "amount": 0,
+        "id": 0
+      },
+      "serverless_null_counts": {
+        "amount": 0,
+        "id": 0
+      },
+      "thresholds": {
+        "missing_records": 0,
+        "extra_records": 0
+      },
+      "ignored_columns": [],
+      "comparison_version": 2,
+      "key_columns": [
+        "id"
+      ],
+      "duplicate_key_groups": {
+        "classic": 1,
+        "serverless": 1
+      },
+      "baseline_source": "imported_synthetic",
+      "target_source": "executed_notebook_transformation",
+      "validated_at": "2026-10-27T15:09:18.584506+00:00",
+      "scenario": "FAIL",
+      "passed": false,
+      "missing_records": 3,
+      "extra_records": 3,
+      "changed_key_groups": 2
+    }
+  ],
+  "limits": [
+    "Baseline is imported synthetic data, not classic compute execution.",
+    "No run ID or compute metadata was provided. Serverless compute selection is not independently verified.",
+    "Final notebook output follows Delta writes in source; saved tables have not been independently queried.",
+    "This does not establish successful Bundle or Databricks App deployment."
+  ]
+}

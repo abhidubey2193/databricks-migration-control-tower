@@ -2,7 +2,7 @@
 
 Databricks classic-to-serverless challenge implementation. SDK discovery, shared readiness assessment, durable local approvals/audit, deterministic migration waves, guarded unscheduled job clones, duplicate-aware validation and a seven-section Streamlit dashboard.
 
-**Current status: local MVP tested; live workspace deployment and video outstanding.** No genuine classic execution, cloud deployment or savings are claimed. See [verification record](demo/VERIFICATION.md), [limitation examples](demo/LIMITATION_EXAMPLES.md) and [submission draft](demo/SUBMISSION_EMAIL.md).
+**Current status: local MVP tested; workspace validation notebook produced user-reported PASS/FAIL output. Full Bundle/App deployment and video are outstanding.** No genuine classic execution, verified Bundle deployment or savings are claimed. See [verification record](demo/VERIFICATION.md), [limitation examples](demo/LIMITATION_EXAMPLES.md) and [submission draft](demo/SUBMISSION_EMAIL.md).
 
 ## Reproduce the working local MVP
 
@@ -103,7 +103,7 @@ Live Bundle validation/deployment has not completed in this session. `bundle val
 | L4 | Old DBR, ML Runtime, images, AWS profiles, configs/env variables detected | No automatic rewrite |
 | L5 | Egg/JAR/Maven/task-library detection and guarded rejection | No library conversion |
 | L6/L7 | Opt-in code/language detection | No automatic rewrites |
-| L8 | Exact duplicate-aware typed comparator, null/count/key-group diagnostics, persisted synthetic PASS/FAIL | No verified classic run; Spark integration notebook unverified |
+| L8 | Exact duplicate-aware typed comparator, null/count/key-group diagnostics, persisted synthetic PASS/FAIL | No verified classic run; Workspace output reported by user; no independently verified run ID or classic run |
 | L9 | Source/backup digest checks; rejects Git-backed automatic cloning | No Git/Bundle patch generation |
 | L10 | No-trigger clone, approval requirement, fresh reassessment, backup and advisory gate | Live API creation not yet verified; no atomic promotion |
 | L11 | Cluster log and SSH-key findings | No alternative log delivery setup |
