@@ -23,9 +23,16 @@ source = spark.createDataFrame(
 )
 result = source.selectExpr("id", "amount * 2 AS amount", "region")
 # A repeated accidental run cannot overwrite the immutable validation output.
-result.write.format("delta").mode("errorifexists").saveAsTable(
-    ".".join("`" + p + "`" for p in parts)
-)
+# Plain CREATE TABLE rejects an existing table, including a concurrent creator.
+# The DataFrame errorifexists save mode is unsupported on some serverless runtimes.
+result.createOrReplaceTempView("smct_target_rows")
+try:
+    spark.sql(
+        "CREATE TABLE " + ".".join("`" + p + "`" for p in parts)
+        + " USING DELTA AS SELECT * FROM smct_target_rows"
+    )
+finally:
+    spark.catalog.dropTempView("smct_target_rows")
 print(
     json.dumps(
         {

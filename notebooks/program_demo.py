@@ -176,7 +176,15 @@ if dbutils.widgets.get("action") == "run":
         if not spark.catalog.tableExists(baseline_table):
             spark.createDataFrame(
                 expected, "id LONG, amount LONG, region STRING"
-            ).write.format("delta").mode("errorifexists").saveAsTable(baseline_table)
+            ).createOrReplaceTempView("smct_baseline_rows")
+            try:
+                # No REPLACE or IF NOT EXISTS: concurrent creation must fail closed.
+                spark.sql(
+                    f"CREATE TABLE {baseline_table} USING DELTA "
+                    "AS SELECT * FROM smct_baseline_rows"
+                )
+            finally:
+                spark.catalog.dropTempView("smct_baseline_rows")
         version = state.get("baseline", {}).get("version")
         if version is None:
             version = int(
