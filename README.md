@@ -2,7 +2,7 @@
 
 Databricks classic-to-serverless challenge implementation. SDK discovery, shared readiness assessment, durable local approvals/audit, deterministic migration waves, guarded unscheduled job clones, duplicate-aware validation and a seven-section Streamlit dashboard.
 
-**Current status: local MVP tested; workspace validation and fleet-scan notebooks produced user-reported successful output. A notebook progress dashboard is included; its workspace rendering, full Bundle/App deployment and video are outstanding.** No genuine classic execution, verified Bundle deployment or savings are claimed. See [verification record](demo/VERIFICATION.md), [limitation examples](demo/LIMITATION_EXAMPLES.md) and [submission draft](demo/SUBMISSION_EMAIL.md).
+**Current status: local MVP tested; workspace validation and fleet-scan notebooks produced user-reported successful output. The notebook progress dashboard also reached its rendered summary in the workspace. Full Bundle/App deployment and video are outstanding.** No genuine classic execution, verified Bundle deployment or savings are claimed. See [verification record](demo/VERIFICATION.md), [limitation examples](demo/LIMITATION_EXAMPLES.md) and [submission draft](demo/SUBMISSION_EMAIL.md).
 
 ## Reproduce the working local MVP
 
@@ -27,7 +27,13 @@ Scores reflect retrieved metadata, not full runtime compatibility. The synthetic
 
 After running `validation_demo` and `fleet_scan`, open `notebooks/control_tower_dashboard.py`. Select the authorized compute, set `catalog=auto`, keep `schema=serverless_migration`, then Run all. It reads the latest Delta fleet snapshot plus up to 20 validation reports and renders a read-only seven-section progress view with inventory filters. The notebook prints a dashboard summary after rendering.
 
-No App deployment or SQL warehouse is required for this notebook view. It does not claim access to local SQLite approvals/backups; missing cost and cutover evidence remain explicit. Rerun it to refresh. Workspace rendering is pending confirmation. This provides an alternative progress view; it does not prove that the Bundle or Databricks App has deployed.
+No App deployment or SQL warehouse is required for this notebook view. It does not claim access to local SQLite approvals/backups; missing cost and cutover evidence remain explicit. Rerun it to refresh. The user supplied a successful dashboard summary: 2 inventory objects and 4 validation reports (2 PASS, 2 FAIL); visual appearance is not independently inspected. This provides an alternative progress view; it does not prove that the Bundle or Databricks App has deployed.
+
+### Live trigger-safety demo
+
+Open `notebooks/clone_safety_demo.py`, set `catalog=auto`, `schema=serverless_migration`, and `apply=true`, then Run all in an authorized sandbox. It creates/reuses a **paused synthetic serverless source job** and a clone built with the same no-trigger builder used by the migration CLI. It starts neither job. The source backup is appended to `clone_safety_demo_backups` before clone creation; a successful source-digest/trigger check is appended to `clone_safety_demo_evidence`. Rerun the dashboard to show this evidence under Governance.
+
+The source is already serverless: this tests **L10 scheduling safety, not a classic migration**. The fixture jobs reference a harmless notebook and remain paused/unscheduled. Existing name conflicts or an unpaused fixture source fail without changing that job. Repeated runs reuse correctly tagged fixture jobs rather than enabling triggers. No automatic deletion is performed. Live execution of this new safety demo is pending confirmation.
 
 ## Architecture
 

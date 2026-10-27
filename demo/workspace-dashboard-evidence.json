@@ -1,0 +1,7 @@
+{
+  "evidence_source": "user_pasted_notebook_output",
+  "independently_retrieved": false,
+  "notebook": "notebooks/control_tower_dashboard.py",
+  "result": {"dashboard": "rendered", "inventory_objects": 2, "inventory_complete": true, "validation_reports": 4, "pass_reports": 2, "fail_reports": 2},
+  "limits": ["The output confirms the notebook reached its final summary after displayHTML.", "Visual appearance has not been independently inspected.", "Repeated validation runs append history; these counts are report rows, not distinct migrated workloads."]
+}

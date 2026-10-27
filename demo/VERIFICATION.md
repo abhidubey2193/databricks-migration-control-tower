@@ -5,7 +5,7 @@
 | Check | Actual result |
 |---|---|
 | Untouched enhanced branch ee73f1d test suite in isolated archive | 11 passed |
-| Updated unit/regression/dashboard suite | 50 passed, 0 failed |
+| Updated unit/regression/dashboard suite | 54 passed, 0 failed |
 | Editable project install with app/dev extras | Succeeded |
 | Python compilation and diff whitespace check | Passed |
 | `python -m smct.cli demo --output demo-output` | PASS scenario true; FAIL scenario false; original unchanged; clone triggers absent |
@@ -15,7 +15,8 @@
 | Workspace Spark validation notebook | User-provided final output at 2026-10-27T15:09:18.584506+00:00: matching PASS, intentional FAIL; see workspace-validation-evidence.json |
 | Delta evidence persistence | Notebook reached final print after write calls; saved tables not independently queried |
 | Workspace fleet scan | User-provided final summary: 2 objects, complete true, warnings empty; see workspace-fleet-evidence.json |
-| Notebook progress dashboard | Included; 3 local rendering/filter/escaping tests pass; live rendering pending |
+| Notebook progress dashboard | User-provided rendered summary: 2 objects, complete true, 4 validation reports (2 PASS / 2 FAIL); see workspace-dashboard-evidence.json |
+| Live Jobs API trigger-safety demo | Included, 4 local mocked safety tests pass; live execution pending |
 | Live Bundle / App deployment and compute selection | Not independently verified; no run ID/compute metadata supplied |
 | Genuine classic execution / A/B jobs | Not verified |
 | Demo video | Not recorded |
@@ -24,4 +25,4 @@
 
 Tests cover typed and empty schemas, duplicate/key groups, nulls, type collisions, non-finite values, SQL identifier rejection, table cap, same-table rejection, stale source/cluster configurations, trigger types, unsupported task fields, partial discovery, backup corruption, wave selection and persistent synthetic evidence.
 
-**NO-GO for submission scoring:** workspace validation now has user-reported execution evidence, and fleet discovery also has a successful user-reported summary. Dashboard rendering and the mandatory demo video remain unverified or incomplete. Authentication succeeded in a personal trial sandbox; the console subsequently blocked automated browser control, and the Genie connection could not be enabled in this session. No genuine classic run is claimed. Partner Academy Medallion Labs classic compute availability is unverified.
+**NO-GO for submission scoring:** workspace validation now has user-reported execution evidence, and fleet discovery also has a successful user-reported summary. Notebook dashboard rendering now also has user-reported success. The new live trigger-safety demo, full Bundle/App deployment and mandatory video remain unverified or incomplete. Authentication succeeded in a personal trial sandbox; the console subsequently blocked automated browser control, and the Genie connection could not be enabled in this session. No genuine classic run is claimed. Partner Academy Medallion Labs classic compute availability is unverified.

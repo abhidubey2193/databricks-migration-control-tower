@@ -1,6 +1,6 @@
 # Submission email draft
 
-Do not send this draft until the live deployment, video, final SHA and participant name have been verified. The current entry is NO-GO against mandatory scoring criteria. Workspace validation output has been provided by the user; fleet discovery also reports success; dashboard rendering and recording are still pending.
+Do not send this draft until the live deployment, video, final SHA and participant name have been verified. The current entry is NO-GO against mandatory scoring criteria. Workspace validation output has been provided by the user; fleet discovery also reports success; dashboard rendering also reports success; live trigger-safety verification and recording are pending.
 
 To: nivethan.venkatachalam@diggibyte.com; anuj.sen@diggibyte.com; veerabadrachari.r@diggibyte.com; william.r@diggibyte.com
 Subject: Serverless Challenge - Submission - <confirmed entrant name>
@@ -14,7 +14,7 @@ Demo video link: OUTSTANDING
 Cloud tested on (AWS / Azure / GCP): UNVERIFIED
 
 Limitations addressed:
-- L1: SDK job/cluster/notebook inventory, readiness, shared-cluster and notebook mapping; durable local approvals/status/audit and wave plans; seven-section Streamlit dashboard and a notebook view of persisted Delta results. User-provided fleet scan summary: 2 objects, complete true, warnings empty. Notebook dashboard rendering and App deployment require live verification.
+- L1: SDK job/cluster/notebook inventory, readiness, shared-cluster and notebook mapping; durable local approvals/status/audit and wave plans; seven-section Streamlit dashboard and a notebook view of persisted Delta results. User-provided fleet scan summary: 2 objects, complete true, warnings empty. User-provided notebook dashboard summary confirms 2 objects and 4 validation reports displayed; App deployment remains unverified.
 - L8: Exact duplicate-aware output comparison with typed schema/null/count/keyed diagnostics; reproducible local PASS/FAIL evidence. Baseline is synthetic. User-provided workspace notebook output confirms equivalent PASS and deliberate FAIL; compute metadata and table persistence have not been independently checked.
 - L10: Approval-gated no-trigger clone, immutable source copy, backup, live settings reassessment, source-digest check and advisory cutover gate. Unit/simulated SDK coverage; no live clone claimed.
 - L2/L3/L4/L5/L6/L7/L11/L13: Selected metadata/static detection with actionable remediation. No automated task splitting or semantic rewrites.
@@ -37,8 +37,8 @@ databricks bundle run smct_fleet_scan -t dev --profile SANDBOX
 databricks bundle run smct_validation_demo -t dev --profile SANDBOX
 databricks bundle run smct_dashboard -t dev --profile SANDBOX
 
-What is tested and how: 50 local tests covering comparison, clone safety, persistence, inventory failures, drift/backup corruption and Streamlit startup. Local synthetic demonstration creates PASS/FAIL evidence. Mocked tests are not live Databricks tests.
+What is tested and how: 54 local tests covering comparison, clone safety, persistence, inventory failures, drift/backup corruption and Streamlit startup. Local synthetic demonstration creates PASS/FAIL evidence. Mocked tests are not live Databricks tests.
 
-Known gaps and next steps: Dashboard rendering and demo recording remain mandatory; fleet discovery reported 2 objects with no warnings. No classic compute execution yet; no actual cost comparison; no authenticated enterprise approval identity; no atomic promotion; no automated Git patch; full control-plane state remains local SQLite.
+Known gaps and next steps: Demo recording remains mandatory; fleet discovery reported 2 objects with no warnings and the notebook dashboard reported successful rendering. Live trigger-safety demo remains to be run. No classic compute execution yet; no actual cost comparison; no authenticated enterprise approval identity; no atomic promotion; no automated Git patch; full control-plane state remains local SQLite.
 
 Confirmation: no customer data, credentials or client workspace details are included: Yes for committed synthetic source and evidence; recheck the final recording and submitted branch.

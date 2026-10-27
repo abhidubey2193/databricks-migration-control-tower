@@ -13,7 +13,7 @@ def _table(headers, rows):
     return '<div class="scroll"><table><thead><tr>'+''.join('<th>'+_text(h)+'</th>' for h in headers)+'</tr></thead><tbody>'+body+'</tbody></table></div>'
 
 
-def render_dashboard(payload, reports, *, scanned_at='', object_type='All', minimum_score=0):
+def render_dashboard(payload, reports, *, scanned_at='', object_type='All', minimum_score=0, safety_reports=()):
     workloads=payload.get('workloads',[])
     meta=payload.get('metadata',{})
     classic=[w for w in workloads if w.get('kind')=='JOB' and w.get('compute_mode')=='classic']
@@ -44,5 +44,9 @@ def render_dashboard(payload, reports, *, scanned_at='', object_type='All', mini
         parts.append(_table(['Baseline rows','Target rows','Typed schema','Schema equal','Missing','Extra','Changed key groups'],[(r.get('classic_rows','?'),r.get('serverless_rows','?'),r.get('typed_schema_compared','?'),r.get('schema_equal','?'),r.get('missing_records','?'),r.get('extra_records','?'),r.get('changed_key_groups','?'))]))
         parts.append(_table(['Metric','Baseline','Target'],[('Null counts',r.get('classic_null_counts',{}),r.get('serverless_null_counts',{})),('Duplicate key groups',r.get('duplicate_key_groups',{}).get('classic','?'),r.get('duplicate_key_groups',{}).get('serverless','?'))])+'</details>')
     parts.append('</section><section id="cost"><h2>Cost and DBUs</h2><p>Unavailable: no live before/after billing records are attached to this snapshot. No savings are claimed.</p></section>')
-    parts.append('<section id="governance"><h2>Governance and cutover</h2><p>Approvals, clone backups and detailed audit events are maintained by the local SQLite control plane. They are not represented by these inventory/validation tables.</p><p><b>Cutover: NOT ESTABLISHED.</b> Synthetic comparisons cannot authorize promotion. This dashboard is read-only and never creates jobs, activates schedules or changes permissions.</p></section><footer>Refresh by rerunning this notebook. Inventory is scoped to the scanning principal’s visibility and configured cap.</footer></main></body></html>')
+    parts.append('<section id="governance"><h2>Governance and cutover</h2>')
+    if safety_reports:
+        parts.append('<h3>Live synthetic scheduling-safety evidence</h3><p>The source is already serverless. These fixtures test trigger safety, not classic migration.</p>'+_table(['Source job','Clone job','Source paused','Original unchanged','Clone has triggers','Backup saved','Jobs started by demo','PASS'],[(r.get('source_job_id','?'),r.get('clone_job_id','?'),r.get('source_schedule_paused','?'),r.get('original_unchanged','?'),r.get('clone_has_triggers','?'),r.get('backup_persisted','?'),r.get('jobs_started_by_demo','?'),r.get('passed','?')) for r in safety_reports]))
+    else: parts.append('<p>No live scheduling-safety evidence loaded. Run clone_safety_demo if authorized, then refresh.</p>')
+    parts.append('<p>Full approvals, migration backups and detailed audit events remain in the local SQLite control plane. Synthetic fixture backups are stored separately in Delta when the live safety demo runs.</p><p><b>Cutover: NOT ESTABLISHED.</b> Synthetic comparisons cannot authorize promotion. This dashboard is read-only and never creates jobs, activates schedules or changes permissions.</p></section><footer>Refresh by rerunning this notebook. Inventory is scoped to the scanning principal’s visibility and configured cap.</footer></main></body></html>')
     return ''.join(parts)

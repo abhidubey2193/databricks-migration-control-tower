@@ -26,6 +26,11 @@ payload=json.loads(rows[0]['payload_json'])
 # Do not suppress permissions, corrupt evidence or query errors as empty results.
 validation_rows=spark.sql(f'SELECT report_json FROM {validation_table} ORDER BY validated_at DESC, scenario LIMIT 20').collect()
 reports=[json.loads(row['report_json']) for row in validation_rows]
-html=render_dashboard(payload,reports,scanned_at=rows[0]['scanned_at'],object_type=dbutils.widgets.get('object_type'),minimum_score=int(dbutils.widgets.get('minimum_score')))
+safety_table=safe_table(f'{catalog}.{schema}.clone_safety_demo_evidence')
+safety_reports=[]
+if spark.catalog.tableExists(safety_table):
+    safety_rows=spark.sql(f'SELECT report_json FROM {safety_table} ORDER BY checked_at DESC LIMIT 1').collect()
+    safety_reports=[json.loads(row['report_json']) for row in safety_rows]
+html=render_dashboard(payload,reports,safety_reports=safety_reports,scanned_at=rows[0]['scanned_at'],object_type=dbutils.widgets.get('object_type'),minimum_score=int(dbutils.widgets.get('minimum_score')))
 displayHTML(html)
-print(json.dumps({'dashboard':'rendered','inventory_objects':len(payload.get('workloads',[])),'inventory_complete':payload.get('metadata',{}).get('complete',False),'validation_reports':len(reports),'pass_reports':sum(r.get('passed') is True for r in reports),'fail_reports':sum(r.get('passed') is False for r in reports)}))
+print(json.dumps({'dashboard':'rendered','inventory_objects':len(payload.get('workloads',[])),'inventory_complete':payload.get('metadata',{}).get('complete',False),'safety_reports':len(safety_reports),'validation_reports':len(reports),'pass_reports':sum(r.get('passed') is True for r in reports),'fail_reports':sum(r.get('passed') is False for r in reports)}))
