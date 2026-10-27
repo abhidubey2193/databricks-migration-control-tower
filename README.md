@@ -2,7 +2,7 @@
 
 Databricks classic-to-serverless challenge implementation. SDK discovery, shared readiness assessment, durable local approvals/audit, deterministic migration waves, guarded unscheduled job clones, duplicate-aware validation and a seven-section Streamlit dashboard.
 
-**Current status: local MVP tested; workspace validation notebook produced user-reported PASS/FAIL output. Full Bundle/App deployment and video are outstanding.** No genuine classic execution, verified Bundle deployment or savings are claimed. See [verification record](demo/VERIFICATION.md), [limitation examples](demo/LIMITATION_EXAMPLES.md) and [submission draft](demo/SUBMISSION_EMAIL.md).
+**Current status: local MVP tested; workspace validation and fleet-scan notebooks produced user-reported successful output. A notebook progress dashboard is included; its workspace rendering, full Bundle/App deployment and video are outstanding.** No genuine classic execution, verified Bundle deployment or savings are claimed. See [verification record](demo/VERIFICATION.md), [limitation examples](demo/LIMITATION_EXAMPLES.md) and [submission draft](demo/SUBMISSION_EMAIL.md).
 
 ## Reproduce the working local MVP
 
@@ -22,6 +22,12 @@ The demo requires no credentials and never contacts Databricks. It exercises the
 Outputs include four job definitions, isolated baseline/PASS/FAIL JSON, an unscheduled clone, backup, SQLite audit/status records and `evidence.json`. Expected results are committed in [demo/expected-results.json](demo/expected-results.json): ready job 100, blocked image/script job 47, 11-task job 65, scheduled job 82; PASS true, FAIL false, original unchanged, clone triggers absent, cutover blocked.
 
 Scores reflect retrieved metadata, not full runtime compatibility. The synthetic baseline is never an executed classic run. The static L13 scanner provides review suggestions, not semantic repair.
+
+## View persisted results inside Databricks
+
+After running `validation_demo` and `fleet_scan`, open `notebooks/control_tower_dashboard.py`. Select the authorized compute, set `catalog=auto`, keep `schema=serverless_migration`, then Run all. It reads the latest Delta fleet snapshot plus up to 20 validation reports and renders a read-only seven-section progress view with inventory filters. The notebook prints a dashboard summary after rendering.
+
+No App deployment or SQL warehouse is required for this notebook view. It does not claim access to local SQLite approvals/backups; missing cost and cutover evidence remain explicit. Rerun it to refresh. Workspace rendering is pending confirmation. This provides an alternative progress view; it does not prove that the Bundle or Databricks App has deployed.
 
 ## Architecture
 
