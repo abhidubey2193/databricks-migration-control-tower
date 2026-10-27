@@ -70,17 +70,19 @@ An arbitrary or synthetic PASS cannot satisfy the cutover gate. It additionally 
 
 ## Deploy the Bundle in Free Edition or another authorized sandbox
 
-Install the official Databricks CLI. Set an authenticated SANDBOX profile, choose an existing Unity Catalog catalog and grant CREATE SCHEMA/table permissions. Serverless Jobs, Databricks Apps and warehouse access depend on workspace entitlements.
+Install the official Databricks CLI. Set an authenticated SANDBOX profile, choose an existing Unity Catalog catalog (or use `catalog=auto` for the current catalog) and grant CREATE SCHEMA/table permissions. Serverless Jobs, Databricks Apps and warehouse access depend on workspace entitlements.
 
 ```bash
 databricks bundle validate -t dev --profile SANDBOX \
-  --var catalog=main --var schema=serverless_migration
+  --var catalog=auto --var schema=serverless_migration
 databricks bundle deploy -t dev --profile SANDBOX \
-  --var catalog=main --var schema=serverless_migration
+  --var catalog=auto --var schema=serverless_migration
 databricks bundle run smct_fleet_scan -t dev --profile SANDBOX
 databricks bundle run smct_validation_demo -t dev --profile SANDBOX
 databricks bundle run smct_dashboard -t dev --profile SANDBOX
 ```
+
+Notebook catalog widgets now default to `auto`, which resolves `SELECT current_catalog()` and checks `SHOW CATALOGS` before any writes. Existing widget values survive Git updates: if an earlier run created `catalog=main`, change that widget to `auto` before rerunning. Explicit unavailable catalogs fail with the accessible catalog names; no catalog is created automatically. CREATE SCHEMA/table permissions are still required.
 
 The Bundle defines two **unscheduled** notebook jobs and a Streamlit App. Source modules are synced alongside notebooks, which import `../src` relative to the notebook working directory. The app installs the package through root `requirements.txt`; root `app.yaml` is its entry point.
 

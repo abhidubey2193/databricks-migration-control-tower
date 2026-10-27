@@ -13,10 +13,12 @@ from datetime import datetime, timezone
 from smct.ab import safe_table
 from smct.validation import compare_rows
 
-for key,default in [('catalog','main'),('schema','serverless_migration')]:
+from smct.destination import resolve_destination
+
+for key,default in [('catalog','auto'),('schema','serverless_migration')]:
     dbutils.widgets.text(key,default)
-catalog=dbutils.widgets.get('catalog')
-schema=dbutils.widgets.get('schema')
+catalog,schema=resolve_destination(spark,dbutils.widgets.get('catalog'),dbutils.widgets.get('schema'))
+print(f'Evidence destination: {catalog}.{schema}')
 # Validate identifiers before using them in any statement.
 safe_table(f'{catalog}.{schema}.smct_demo_baseline')
 spark.sql(f'CREATE SCHEMA IF NOT EXISTS `{catalog}`.`{schema}`')

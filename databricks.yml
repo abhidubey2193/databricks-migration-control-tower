@@ -4,8 +4,8 @@ include:
   - resources/*.yml
 variables:
   catalog:
-    description: Existing Unity Catalog catalog where the principal has CREATE SCHEMA privileges
-    default: main
+    description: Existing writable Unity Catalog catalog, or auto for the execution principal current catalog
+    default: auto
   schema:
     description: Sandbox-only destination schema
     default: serverless_migration

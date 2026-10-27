@@ -5,7 +5,7 @@
 | Check | Actual result |
 |---|---|
 | Untouched enhanced branch ee73f1d test suite in isolated archive | 11 passed |
-| Updated unit/regression/dashboard suite | 38 passed, 0 failed |
+| Updated unit/regression/dashboard suite | 47 passed, 0 failed |
 | Editable project install with app/dev extras | Succeeded |
 | Python compilation and diff whitespace check | Passed |
 | `python -m smct.cli demo --output demo-output` | PASS scenario true; FAIL scenario false; original unchanged; clone triggers absent |

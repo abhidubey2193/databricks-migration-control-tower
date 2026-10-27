@@ -37,7 +37,7 @@ databricks bundle run smct_fleet_scan -t dev --profile SANDBOX
 databricks bundle run smct_validation_demo -t dev --profile SANDBOX
 databricks bundle run smct_dashboard -t dev --profile SANDBOX
 
-What is tested and how: 38 local tests covering comparison, clone safety, persistence, inventory failures, drift/backup corruption and Streamlit startup. Local synthetic demonstration creates PASS/FAIL evidence. Mocked tests are not live Databricks tests.
+What is tested and how: 47 local tests covering comparison, clone safety, persistence, inventory failures, drift/backup corruption and Streamlit startup. Local synthetic demonstration creates PASS/FAIL evidence. Mocked tests are not live Databricks tests.
 
 Known gaps and next steps: Live workspace testing and demo recording remain mandatory. No classic compute execution yet; no actual cost comparison; no authenticated enterprise approval identity; no atomic promotion; no automated Git patch; full control-plane state remains local SQLite.
 

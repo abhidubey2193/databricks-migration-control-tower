@@ -14,10 +14,12 @@ from smct.discovery import inventory
 from databricks.sdk import WorkspaceClient
 from pyspark.sql.types import StructType, StructField, StringType
 
-for key,default in [('catalog','main'),('schema','serverless_migration')]:
+from smct.destination import resolve_destination
+
+for key,default in [('catalog','auto'),('schema','serverless_migration')]:
     dbutils.widgets.text(key,default)
-catalog=dbutils.widgets.get('catalog')
-schema=dbutils.widgets.get('schema')
+catalog,schema=resolve_destination(spark,dbutils.widgets.get('catalog'),dbutils.widgets.get('schema'))
+print(f'Evidence destination: {catalog}.{schema}')
 if not all(re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*',x) for x in (catalog,schema)):
     raise ValueError('Invalid destination identifier')
 workloads,errors=inventory(WorkspaceClient(),root='/',max_notebooks=500)
