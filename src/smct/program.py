@@ -107,6 +107,9 @@ class Program:
         return result
 
     def assess(self, wid, settings, *, synthetic, baseline_source, owner):
+        from .secrets import reject_literal_credentials
+
+        reject_literal_credentials(settings)
         existing = self.states().get(wid)
         if existing:
             if existing["source_digest"] != digest(settings):
@@ -161,20 +164,65 @@ class Program:
         state["wave"] = wave
         return self._write(wid, "WAVE_ASSIGNED", state)
 
-    def plan(self, wid, *, allow_large=False):
+    def disposition(self, wid, *, decision, reason, is_workspace_admin=False):
+        state = self.state(wid)
+        if state["status"] not in (
+            "READY",
+            "BLOCKED",
+            "PLANNED",
+            "KEEP_CLASSIC",
+            "DEFERRED",
+        ):
+            raise ValueError("Disposition must precede approval/execution")
+        if decision not in ("KEEP_CLASSIC", "DEFERRED") or not reason.strip():
+            raise ValueError("KEEP_CLASSIC/DEFERRED and a reason required")
+        if not is_workspace_admin:
+            raise PermissionError("Authenticated administrator disposition required")
+        state.update(
+            status=decision,
+            disposition=dict(
+                decision=decision, reason=reason, actor=self.actor, at=utcnow()
+            ),
+        )
+        return self._write(wid, "DISPOSITION_RECORDED", state)
+
+    def plan(self, wid, *, allow_large=False, resolved_settings=None, dependencies=()):
         state = self.state(wid)
         if state["status"] not in ("READY", "BLOCKED", "PLANNED"):
             raise ValueError("Plan can only be created before approval")
-        if any(
-            t.get("existing_cluster_id")
-            for t in state["source_settings"].get("tasks", [])
-        ):
+        planning_source = (
+            resolved_settings
+            if resolved_settings is not None
+            else state["source_settings"]
+        )
+        if resolved_settings is not None:
+            before = [
+                (t["task_key"], t.get("depends_on", []))
+                for t in state["source_settings"]["tasks"]
+            ]
+            after = [
+                (t["task_key"], t.get("depends_on", []))
+                for t in resolved_settings["tasks"]
+            ]
+            if before != after:
+                raise ValueError("Resolution cannot change the task graph")
+        if any(t.get("existing_cluster_id") for t in planning_source.get("tasks", [])):
             raise ValueError(
                 "Shared cluster configuration must be resolved before programme planning"
             )
-        candidate = build_serverless_clone(
-            state["source_settings"], allow_large=allow_large
-        )
+        candidate = build_serverless_clone(planning_source, allow_large=allow_large)
+        if dependencies:
+            from .remediation import dependency_plan
+            import shlex
+
+            for dependency in dependencies:
+                if not dependency_plan("pip install " + shlex.quote(dependency))[
+                    "can_apply"
+                ]:
+                    raise ValueError("Unreviewable environment dependency")
+            candidate["environments"][0]["spec"]["dependencies"] = sorted(
+                set(dependencies)
+            )
         candidate.setdefault("tags", {}).update(
             smct_program=self.program_id, smct_workload=wid
         )
@@ -186,6 +234,7 @@ class Program:
             if allow_large
             else "guarded_serverless_clone",
             task_layers=validate_task_graph(candidate["tasks"]),
+            resolution_digest=digest(planning_source),
         )
         return self._write(
             wid,
@@ -280,9 +329,17 @@ class Program:
 
     def billing_observed(self, wid, observation):
         state = self.state(wid)
-        if state["status"] not in ("EXECUTED", "VALIDATED", "VALIDATION_FAILED"):
+        if state["status"] not in (
+            "EXECUTED",
+            "VALIDATED",
+            "VALIDATION_FAILED",
+            "MIGRATED_PAUSED",
+            "MIGRATED",
+            "ROLLED_BACK_PAUSED",
+            "ROLLED_BACK",
+        ):
             raise ValueError("Execution evidence required")
-        if state.get("billing"):
+        if state.get("billing") == observation:
             return state
         state["billing"] = copy.deepcopy(observation)
         return self._write(wid, "BILLING_OBSERVED", state)

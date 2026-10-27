@@ -8,8 +8,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install -e '.[app,dev]'
+      - run: pip install -e '.[app,dev,spark]'
       - run: python -m pytest -q
+        env:
+          SPARK_LOCAL_IP: 127.0.0.1
       - run: python -m smct.cli demo --output demo-output
       - uses: actions/upload-artifact@v4
         with:

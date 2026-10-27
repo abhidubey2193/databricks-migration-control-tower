@@ -119,7 +119,7 @@ def render_dashboard(
     )
     if program_states:
         parts.append(
-            '<section><h2>Connected migration programme</h2><p class="muted">These programme examples use synthetic classic definitions and imported baselines. Target job IDs/run IDs are live when recorded. VALIDATED does not mean production cutover.</p>'
+            '<section><h2>Connected migration programme</h2><p class="muted">Provenance is shown for each workload. Imported synthetic baselines and executed classic baselines are separate evidence types. VALIDATED means output verification, not production cutover. MIGRATED records an explicit cutover.</p>'
             + _table(
                 [
                     "Programme",
@@ -128,6 +128,7 @@ def render_dashboard(
                     "Score",
                     "Wave",
                     "Approval scope",
+                    "Baseline provenance",
                     "Clone job",
                     "Job run",
                     "Validation",
@@ -141,6 +142,7 @@ def render_dashboard(
                         s.get("readiness", ""),
                         s.get("wave") or "Unassigned",
                         (s.get("approval") or {}).get("scope", "Pending"),
+                        s.get("baseline_source", "Unknown"),
                         s.get("clone_job_id", "—"),
                         s.get("run_id", "—"),
                         ("PASS" if s["validation"]["passed"] else "FAIL")
@@ -284,8 +286,17 @@ def render_dashboard(
             + "</details>"
         )
     parts.append(
-        '</section><section id="cost"><h2>Cost and DBUs</h2><p>No classic/serverless cost comparison is established. No savings are claimed.</p>'
+        '</section><section id="cost"><h2>Cost and DBUs</h2><p>Run-attributed DBUs and USD list cost are shown when billing records and prices are available. List cost excludes discounts and cloud infrastructure. Missing billing is not zero cost.</p>'
     )
+    comparisons = [
+        (s.get("program_id", ""), s.get("name", ""), b.get("status", ""),
+         b.get("classic", {}).get("dbus"), b.get("serverless", {}).get("dbus"),
+         b.get("classic", {}).get("list_cost_usd"), b.get("serverless", {}).get("list_cost_usd"),
+         b.get("observed_savings_pct"))
+        for s in program_states for b in [s.get("billing") or {}] if "classic" in b
+    ]
+    if comparisons:
+        parts.append(_table(["Programme", "Workload", "Billing status", "Classic DBUs", "Serverless DBUs", "Classic list USD", "Serverless list USD", "Observed saving %"], comparisons))
     observed = [
         (
             s.get("program_id", ""),
@@ -346,7 +357,7 @@ def render_dashboard(
         )
     if program_events:
         parts.append(
-            "<h3>Programme audit trail</h3><p>Each revision stores the workload state and authenticated notebook actor in Delta. The runner is single-writer; this is not an enterprise authorization boundary.</p>"
+            "<h3>Programme audit trail</h3><p>Each revision stores the workload state and authenticated notebook actor in Delta. The fleet controller authenticates the actor and uses a Delta lease. Table ACLs must restrict writers. Earlier demo programmes use a single-writer journal.</p>"
             + _table(
                 [
                     "Programme",
@@ -372,6 +383,6 @@ def render_dashboard(
             )
         )
     parts.append(
-        "<p>Connected programme approvals, backup snapshots and lifecycle events are stored in Delta. The older CLI workflow still uses local SQLite. Synthetic trigger-fixture backups are stored separately in Delta.</p><p><b>Cutover: NOT ESTABLISHED.</b> Synthetic comparisons cannot authorize promotion. This dashboard is read-only and never creates jobs, activates schedules or changes permissions.</p></section><footer>Refresh by rerunning this notebook. Inventory is scoped to the scanning principal’s visibility and configured cap.</footer></main></body></html>"
+        "<p>Connected programme approvals, backup snapshots and lifecycle events are stored in Delta. The older CLI workflow still uses local SQLite. Synthetic trigger-fixture backups are stored separately in Delta.</p><p><b>Cutover: NOT ESTABLISHED.</b> for synthetic comparisons. Genuine fleet cutovers appear as MIGRATED_PAUSED or MIGRATED after their gates pass. This dashboard is read-only and never creates jobs, activates schedules or changes permissions.</p></section><footer>Refresh by rerunning this notebook. Inventory is scoped to the scanning principal’s visibility and configured cap.</footer></main></body></html>"
     )
     return "".join(parts)

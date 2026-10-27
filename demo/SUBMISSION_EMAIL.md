@@ -14,30 +14,31 @@ Demo video: [link required]
 Cloud tested: AWS personal trial sandbox; operator-run notebooks. No classic-compute execution.
 
 Limitations addressed:
-- L1: SDK inventory/readiness and a notebook dashboard. The new connected programme stores decisions, approvals, backups, clone/run references and validation in Delta. Its operator-run workspace lifecycle reached VALIDATED with 17 audit events.
-- L2: Generates an 11-task serverless candidate through the direct Jobs API path, preserving the dependency graph. The large candidate is planned, not executed.
-- L8: Typed, duplicate-aware output comparison with null/count/key diagnostics. The standalone notebook demonstrated PASS and intentional FAIL. The connected target-job route reached VALIDATED with pinned Delta snapshots and run binding; the intentional negative control failed as expected. Baseline data is synthetic.
-- L10: Live synthetic fixture produced a paused unchanged source, no-trigger clone and persisted backup, with zero jobs started. Source was already serverless.
-- L9: Configuration/code fingerprints and drift checks; no Git/Bundle writeback.
-- L3/L4/L5/L6/L7/L11/L13: Selected static/metadata detection with remediation guidance. No general automatic code or dependency conversion.
-- L12: Target-job usage query where permitted; no before/after savings claim.
+- L1: Paginated SDK fleet/code inventory, readiness/blockers, manifest waves, authenticated approval, Delta lease/journal, resumable bulk execution and joined dashboard.
+- L2: Direct Jobs API DAG compilation through 1,000 tasks; queue/inflight control; 11-task lifecycle adapter tests and workspace acceptance harness.
+- L3/L5: Bounded script retrieval, pinned dependency translation, explicit binary replacements and reviewed serverless JAR packaging.
+- L4/L7/L11: Runtime/image/IAM/language/observability detection and explicit keep-classic/deferred decisions.
+- L6/L13: Static detection plus reviewable Python AST and SQL parser proposals for mapped Delta views, streaming triggers and TRY_* operations.
+- L8: Real classic/serverless validation-clone adapter, pinned inputs/outputs, distributed typed duplicate-aware comparison and negative controls. Current live proof uses a synthetic baseline; genuine classic execution requires another workspace.
+- L9/L10: Fingerprints, atomic Bundle writeback/CAS, rollback resource restoration, all trigger forms removed from validation clones, original-ID paused cutover/rollback and separate activation. Bundle binding and trigger-policy reconciliation are explicit.
+- L12: Correction-aware job/run/team/SKU DBUs and effective USD list prices, with pending/unpriced states and no invented savings.
 
 Architecture:
-The SDK inventories workloads and passes them through a shared assessment engine.
-A Delta event history joins programme decisions and execution/validation evidence by workload.
-Jobs run only explicitly approved synthetic fixtures into isolated output tables.
-The notebook dashboard reads saved state; a separate CLI/Streamlit route uses SQLite.
-Promotion remains manual and synthetic evidence cannot authorize cutover.
+SDK inventory and source scans feed a deterministic assessment engine and reviewed manifest.
+A leased Delta journal binds decisions, approvals, source backups, notebook/config hashes and run evidence.
+Separate unscheduled classic/serverless clones use pinned inputs and isolated outputs; distributed comparison decides PASS/FAIL.
+Genuine evidence gates Bundle writeback and paused original-ID cutover/rollback; activation is separate.
+Notebook and App dashboards share one persisted reader, including observed billing and provenance.
 
 Databricks components: SDK, Jobs API, serverless notebooks/jobs, Unity Catalog Delta, optional billing system tables, Bundle configuration and an unverified App definition.
 
 Deploy/reproduce:
-Clone the repo as a Git folder and select enhanced-control-tower. On authorized Serverless compute, use catalog=auto and schema=serverless_migration. Run program_demo with action=assess, inspect its plan, then action=run. Rerun with the same program_id if a job is still executing. Run fleet_scan and control_tower_dashboard to inspect results. The earlier standalone demos remain available.
+Clone the repo as a Git folder and select enhanced-control-tower. On authorized Serverless compute, use catalog=auto and schema=serverless_migration. Use workspace_acceptance with action=assess, inspect its plans, then action=run; use fleet_controller plus a reviewed manifest for the general migration workflow. Rerun with the same program_id if a job is still executing. Run fleet_scan and control_tower_dashboard to inspect results. The earlier standalone demos remain available.
 
 Tests:
-87 local tests pass. Earlier workspace outputs cover a complete 14-object scan, rendered dashboard with connected programme state/audit, matching/mismatched comparison and live scheduling-safety fixture. The connected route also reached VALIDATED in the operator-run workspace demonstration (job 817177348613471, run 1014105518777189). GitHub Actions passed for b4bd26c.
+135 local tests passed, including real local Spark comparisons; Jobs lifecycle tests use a simulated service. Official CLI Bundle schema check passed. Operator-supplied workspace outputs confirm 14-object inventory, rendered programme dashboard, one validated real serverless job with synthetic baseline, intentional FAIL and live scheduling-safety fixture. New general paths are not claimed as live-tested without their acceptance outputs.
 
 Known gaps:
-No genuine classic execution, automatic production cutover/rollback, enterprise approval service, verified savings or completed Bundle/App deployment test. The programme runner is single-writer. The required video and final access checks must be completed before sending.
+Current workspace has no classic compute, so genuine classic A/B and before/after savings remain unverified. Full authenticated Bundle/App deployment and the new acceptance notebook still need workspace checks. Arbitrary shell, language and mount semantics require explicit remediation/keep-classic review. Table ACLs provide the authorization boundary; the journal is not tamper-proof against admins. Generated resources require binding and runtime trigger-policy reconciliation before subsequent deployment.
 
 Confirmation: no customer data, credentials or client workspace details are included: [confirm after checking the final recording].

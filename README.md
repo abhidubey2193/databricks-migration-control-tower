@@ -1,100 +1,81 @@
 # Serverless Migration Control Tower
 
-A small control plane for assessing Databricks workloads and keeping migration decisions, job references and validation results together.
+Assess a Databricks workspace, review migration plans, run approved validation waves, and keep the decisions and evidence together. The controller uses the Jobs API directly; it does not depend on the Beta Genie Code migration agent.
 
-The project has two ways to use it: Databricks notebooks backed by Delta, and a local CLI backed by SQLite. The notebook dashboard is the route tested in the sandbox so far. The Streamlit app and Bundle deployment still need a full deployment check.
+The main implementation is a set of workspace notebooks backed by Unity Catalog Delta. A read-only Streamlit App reads the same evidence. The older SQLite CLI remains available for local exploration.
 
-## Run it in Databricks
+## Start in a workspace
 
-Create a Git folder from this repo and select `enhanced-control-tower`. Use an internal or personal sandbox. The notebooks default to the current catalog (`catalog=auto`) and write to `serverless_migration`.
+Clone this repo as a Git folder and select `enhanced-control-tower`. Use **Serverless notebook compute**, not a SQL warehouse. Run each notebook's first parameter cell before changing its widgets. Defaults are `catalog=auto` and `schema=serverless_migration`; old widget values survive Git pulls.
 
-For the connected demo:
-
-1. Open `notebooks/program_demo` and select Serverless.
-2. Set `action=assess` and run it to inspect three examples: a ready workload, an image/init-script blocker and an 11-task chain.
-3. Set `action=run` to approve the ready example, save its backup, create an unscheduled job and execute four generated rows. Approval records the SQL/SDK identity. Non-admin self-approval is limited to the operator's synthetic fixture.
-4. If it reports `EXECUTING`, rerun with the same `program_id`. Run submission uses an idempotency token.
-5. Run `notebooks/control_tower_dashboard` to see the workload states and audit trail.
-
-Use one runner per `program_id`. The audit table detects conflicting revisions; it is not a distributed lock. A failed run stays failed. Inspect its run ID before starting a new programme.
-
-The source definitions and baseline are synthetic. The target is a real serverless Jobs run. A successful comparison records `VALIDATED`, never `MIGRATED`, and does not enable a schedule.
-
-The earlier, separately tested notebooks are still useful:
-
-| Notebook | Purpose |
+| Notebook | Use |
 |---|---|
-| `fleet_scan` | Save the workspace inventory to Delta |
-| `validation_demo` | Compare a generated transformation with a synthetic baseline; show PASS and deliberate FAIL |
-| `clone_safety_demo` | With `apply=true`, create a paused source fixture and a no-trigger clone; start neither |
-| `control_tower_dashboard` | Read the saved inventory, comparisons and programme history |
+| `fleet_controller` | Discover and scan code; import a manifest; plan, approve and execute waves; collect billing; reconcile, cut over and roll back |
+| `control_tower_dashboard` | Fleet readiness, joined programme status, validation, cost and audit history |
+| `workspace_acceptance` | Generated-data acceptance: actual 1-task and 11-task serverless Jobs runs, distributed comparisons and negative controls |
+| `classic_acceptance_setup` | In a classic-capable sandbox, create paused source fixtures and a manifest for genuine A/B acceptance |
+| `remediation_workbench` | Retrieve/translate init scripts; propose Python/SQL edits and serverless JAR packaging |
+| `program_demo` | Earlier connected example with a synthetic baseline |
+| `clone_safety_demo` | Earlier paused-source/no-trigger-clone safety fixture |
 
-The dashboard notebook reloads its renderer after Git updates. Existing widget values survive pulls; change an old `catalog=main` value to `auto`.
+For a serverless-only account, run `workspace_acceptance` with `action=assess`, review the plans, then choose `action=run`. Rerun the execution cell with the same ID until both workloads finish. Reference inputs and baselines are generated; these are not classic runs.
 
-## Local setup
+For real workload migration, start with [the manifest example](examples/fleet-manifest.json) and [the operating procedure](OPERATIONS.md). The controller does not execute arbitrary discovered jobs. Each selected notebook needs an explicit pinned-input/isolated-output contract and administrator approval.
 
-Python 3.10+ is required. Tests run on Python 3.12.
+## Deploy
+
+Python 3.10+ and the official Databricks CLI are required locally.
 
 ```bash
 pip install -e '.[app,dev]'
-python -m pytest -q
+databricks auth login --profile SANDBOX
+bash scripts/deploy.sh SANDBOX dev
+```
+
+The script validates and deploys the Bundle, runs the enhanced fleet scan and renders a dashboard snapshot. It requires authenticated workspace access, serverless entitlement and a writable catalog. Bundle resources include six jobs and the App definition. No job has a schedule. The fleet controller and acceptance jobs default to read-only assessment actions.
+
+For the App, select **Unity Catalog snapshots**, provide a warehouse ID and use `catalog=auto` or an explicit catalog. Grant its principal warehouse CAN USE and SELECT on the evidence schema. The notebook dashboard needs no App deployment or SQL warehouse.
+
+## Design
+
+[Architecture](ARCHITECTURE.md) describes the state machine and failure handling. [Coverage](demo/LIMITATION_EXAMPLES.md) maps the implementation to L1–L13.
+
+- Jobs 2.2 arrays are paginated explicitly. The direct compiler preserves DAGs up to 1,000 tasks; unsupported task/configuration combinations are rejected.
+- Plans, notebook fingerprints, input versions and dependencies are bound before approval. Literal credential-like settings are rejected before durable backup.
+- The fleet controller acquires a cooperative Delta lease. Each state revision and audit event is appended together. Restrict table write permissions to controller operators.
+- Real A/B validation creates two unscheduled clones: one classic, one serverless. It never runs the source job. Outputs use separate tables and pinned input versions.
+- Distributed `EXCEPT ALL` compares complete Delta snapshots with typed schemas, duplicate multiplicity, null counts and key diagnostics. Unsupported Spark set-operation types fail without recording PASS.
+- Bulk execution is resumable, run submission uses idempotency tokens, and wave execution limits inflight workloads. A failed baseline cannot launch its target.
+- Cutover changes the original job ID only after genuine A/B evidence, drift checks, backup verification and Bundle writeback. Cutover and rollback leave triggers paused; activation is separate.
+- Billing nets original/retraction/restatement records and joins effective USD list prices. Missing prices, delayed usage and unattributed shared compute remain explicit; they are never treated as zero cost.
+
+The generated Bundle resource is unscheduled. Bind it to the original job before deploying it, and reconcile the runtime trigger policy before subsequent deployments. The controller records that boundary rather than claiming a Git commit or deployment it has not performed.
+
+## Tests and evidence
+
+```bash
+pip install -e '.[app,dev,spark]'
+SPARK_LOCAL_IP=127.0.0.1 python -m pytest -q
 smct demo --output demo-output
 SMCT_DB=demo-output/smct.sqlite python -m streamlit run app/dashboard.py
 ```
 
-Use a fresh output directory for each local demo. It uses a simulated SDK and needs no workspace credentials.
+Tests include the fleet lifecycle, 11-task execution through a simulated Jobs service, crash recovery, authenticated approval, source drift, Bundle compare-and-swap, cutover/activation/rollback, billing and real local Spark comparisons. See [verification](demo/VERIFICATION.md) for counts and the distinction between simulated, local Spark and workspace checks.
 
-For a real read-only inventory:
+Operator-supplied workspace evidence currently shows 14 discovered objects, one validated connected serverless workload, passing and intentionally failing comparisons, a scheduling-safety fixture and a rendered programme dashboard. The new fleet and acceptance paths need workspace execution before being described as live-tested.
 
-```bash
-databricks auth login --profile SANDBOX
-export DATABRICKS_CONFIG_PROFILE=SANDBOX
-smct scan --output inventory.json
-smct waves --size 5
-```
+## Boundaries
 
-The CLI also provides `approve`, `clone`, `validate`, `gate` and `audit`; use `smct <command> --help`. Clone creation requires a recorded approval and `--apply`. The CLI never modifies the original job or promotes a clone.
+Free Edition has no classic compute. An Express trial starts with a serverless workspace too; genuine classic A/B needs an authorized classic-capable workspace. No classic execution or cost saving has been demonstrated in the current sandbox.
 
-## Design
+Automatic fleet A/B currently supports notebook tasks with the explicit I/O contract. Python/wheel jobs can be compiled; JAR jobs have a separate reviewed packaging path. Arbitrary shell scripts, Scala/R source conversion, mounts and unmanaged side effects are not guessed: record a keep-on-classic/deferred decision or remediate and reassess.
 
-[Architecture and failure handling](ARCHITECTURE.md) describes the component boundaries, state model and production tradeoffs.
+Local Bundle schema validation is not an authenticated clean-workspace deployment test. The code includes both deployment paths, but full Bundle/App deployment remains to be verified. The App and notebooks rely on workspace/Unity Catalog permissions; this project is not a separate enterprise identity provider.
 
-- Discovery and assessment share one Python engine across the CLI and notebooks. Inventory records missing permissions and notebook caps.
-- The connected programme appends state revisions to a single Delta table, `program_events`. Each event carries the programme/workload ID, actor, status and evidence snapshot. The older CLI keeps its state in SQLite.
-- Plans are fingerprinted before approval. The approved source definition is backed up before clone creation. Clone readback must match the plan and have no triggers.
-- Runs use the stored clone ID and an idempotency token. Validation checks a successful run, unchanged configurations and pinned Delta table versions.
-- Comparisons preserve duplicate multiplicity and check typed schemas, counts, nulls and keyed differences. A negative control deliberately alters the output and must fail.
-- The 11-task example uses a direct Jobs API plan that retains the original dependency graph. Our guarded converter caps this path at 100 tasks. The example is planned, not executed by the demo.
-- Billing reads, when permitted, show usage for the target job. They do not establish before/after savings.
+Keep credentials, inventory exports, runtime databases and backups out of Git. All published examples use generated data.
 
-## Bundle
-
-```bash
-databricks bundle validate -t dev --profile SANDBOX
-databricks bundle deploy -t dev --profile SANDBOX
-databricks bundle run smct_fleet_scan -t dev --profile SANDBOX
-```
-
-The Bundle defines the inventory/validation jobs, an assessment-only programme job and the Streamlit app. `smct_program_demo` defaults to assessment; run the interactive notebook for the full demo. App warehouse/Unity Catalog permissions are not granted automatically.
-
-Full Bundle deployment is unverified. Its notebooks import the synced `src` directory relative to their working directory.
-
-## What has actually been checked
-
-The earlier notebooks produced sandbox outputs for inventory (9 objects, no warnings), a rendered dashboard, PASS/FAIL comparison and a live trigger-safety fixture. The fixture used an already-serverless source and started no jobs. Those results are supplied by the operator and saved under `demo/workspace-*-evidence.json`.
-
-The operator-run connected programme reached VALIDATED with a real serverless job, a passing comparison and an intentionally failing negative control. The source definitions and baseline remain synthetic. See [verification notes](demo/VERIFICATION.md) for the current test count and boundaries.
-
-## Limits
-
-No genuine classic-compute execution has been demonstrated. There is no automatic cutover, production rollback, enterprise approval service or verified cost saving. The notebook programme stores authenticated approvals for the sandbox; it does not replace platform access controls.
-
-Detection covers selected runtime, library, storage and code risks. Most findings require manual remediation. The direct large-job converter handles supported notebook/Python/wheel tasks; unsupported settings fail closed. The project does not invoke the Beta Genie Code migration agent.
-
-Keep credentials, scans, SQLite databases and backups out of Git. The examples use generated data. Repo privacy and judge access are owner decisions.
-
-[Limitation examples](demo/LIMITATION_EXAMPLES.md) · [Recording outline](demo/DEMO_SCRIPT.md) · [Submission draft](demo/SUBMISSION_EMAIL.md)
+[Recording outline](demo/DEMO_SCRIPT.md) · [Submission draft](demo/SUBMISSION_EMAIL.md)
 
 ## References
 
-[Jobs API](https://docs.databricks.com/api/jobs/v2/job) · [Large jobs](https://docs.databricks.com/aws/en/jobs/large-jobs) · [Bundle resources](https://docs.databricks.com/aws/en/dev-tools/bundles/resources) · [Billing tables](https://docs.databricks.com/aws/en/admin/system-tables/billing)
+[Migration](https://docs.databricks.com/aws/en/compute/serverless/migration) · [Current serverless limits](https://docs.databricks.com/aws/en/compute/serverless/limitations) · [Jobs API](https://docs.databricks.com/api/jobs/v2/job) · [Bundle resources](https://docs.databricks.com/aws/en/dev-tools/bundles/resources) · [Billing](https://docs.databricks.com/aws/en/admin/system-tables/billing) · [Free Edition limits](https://docs.databricks.com/aws/en/getting-started/free-edition-limitations)

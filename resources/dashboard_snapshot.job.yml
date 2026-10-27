@@ -1,0 +1,12 @@
+resources:
+  jobs:
+    smct_dashboard_snapshot:
+      name: '[SMCT] Evidence dashboard'
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: dashboard
+          notebook_task:
+            notebook_path: ../notebooks/control_tower_dashboard.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}

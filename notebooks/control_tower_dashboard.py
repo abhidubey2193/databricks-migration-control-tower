@@ -28,73 +28,20 @@ dbutils.widgets.dropdown("minimum_score", "0", ["0", "25", "50", "75", "100"])
 catalog, schema = resolve_destination(
     spark, dbutils.widgets.get("catalog"), dbutils.widgets.get("schema")
 )
-inventory_table = safe_table(f"{catalog}.{schema}.fleet_snapshots")
-validation_table = safe_table(f"{catalog}.{schema}.validation_demo_evidence")
-rows = spark.sql(
-    f"SELECT scanned_at,payload_json FROM {inventory_table} ORDER BY scanned_at DESC LIMIT 1"
-).collect()
-if not rows:
-    raise ValueError("No saved inventory. Run fleet_scan first.")
-payload = json.loads(rows[0]["payload_json"])
-# Do not suppress permissions, corrupt evidence or query errors as empty results.
-validation_rows = spark.sql(
-    f"SELECT report_json FROM {validation_table} ORDER BY validated_at DESC, scenario LIMIT 20"
-).collect()
-reports = [json.loads(row["report_json"]) for row in validation_rows]
-safety_table = safe_table(f"{catalog}.{schema}.clone_safety_demo_evidence")
-safety_reports = []
-if spark.catalog.tableExists(safety_table):
-    safety_rows = spark.sql(
-        f"SELECT report_json FROM {safety_table} ORDER BY checked_at DESC LIMIT 1"
-    ).collect()
-    safety_reports = [json.loads(row["report_json"]) for row in safety_rows]
-program_states = []
-program_events = []
-program_table = safe_table(f"{catalog}.{schema}.program_events")
-if spark.catalog.tableExists(program_table):
-    raw = spark.sql(
-        f"SELECT * FROM {program_table} ORDER BY event_at DESC LIMIT 5001"
-    ).collect()
-    if len(raw) > 5000:
-        raise ValueError(
-            "Dashboard programme history exceeds cap; filter/archive before displaying"
-        )
-    latest = {}
-    seen = set()
-    for row in sorted(raw, key=lambda r: (r["event_at"], r["sequence"])):
-        event = {
-            "program_id": row["program_id"],
-            "workload_id": row["workload_id"],
-            "sequence": row["sequence"],
-            "event_type": row["event_type"],
-            "actor": row["actor"],
-            "event_at": row["event_at"],
-            "state": json.loads(row["state_json"]),
-        }
-        key = (event["program_id"], event["workload_id"])
-        revision = (*key, event["sequence"])
-        if revision in seen:
-            raise ValueError(
-                "Conflicting programme audit revisions; reconcile before use"
-            )
-        seen.add(revision)
-        program_events.append(event)
-        if key not in latest or event["sequence"] > latest[key]["sequence"]:
-            latest[key] = event
-    program_states = [
-        dict(e["state"], program_id=e["program_id"]) for e in latest.values()
-    ]
-    for state in program_states:
-        for field in ("validation", "negative_control"):
-            if state.get(field):
-                reports.append(dict(state[field], workload=state["name"]))
+from smct.evidence import load_evidence
+saved = load_evidence(lambda sql: [r.asDict() for r in spark.sql(sql).collect()], catalog, schema)
+payload = saved['payload']
+reports = saved['reports']
+safety_reports = saved['safety_reports']
+program_states = saved['program_states']
+program_events = saved['program_events']
 html = render_dashboard(
     payload,
     reports,
     program_states=program_states,
     program_events=program_events,
     safety_reports=safety_reports,
-    scanned_at=rows[0]["scanned_at"],
+    scanned_at=saved["scanned_at"],
     object_type=dbutils.widgets.get("object_type"),
     minimum_score=int(dbutils.widgets.get("minimum_score")),
 )

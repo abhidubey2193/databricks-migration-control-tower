@@ -1,0 +1,17 @@
+{
+  "workloads": [
+    {
+      "id": "orders",
+      "source_job_id": 123,
+      "wave": 1,
+      "sandbox_execution_reviewed": false,
+      "inputs": {"table": "workspace.serverless_migration.orders_input", "version": 0},
+      "output_task": "orders",
+      "parameter_names": {"input_table": "input_table", "input_version": "input_version", "output_table": "output_table"},
+      "key_columns": ["id"],
+      "ignore_columns": [],
+      "task_inputs": {},
+      "library_replacements": {}
+    }
+  ]
+}

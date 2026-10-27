@@ -1,0 +1,22 @@
+resources:
+  jobs:
+    smct_fleet_controller:
+      name: '[SMCT] Fleet controller'
+      description: Authenticated, leased migration control. Defaults to read-only discovery.
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: controller
+          notebook_task:
+            notebook_path: ../notebooks/fleet_controller.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              action: scan
+          environment_key: smct_control
+      environments:
+        - environment_key: smct_control
+          spec:
+            environment_version: '2'
+            dependencies:
+              - PyYAML==6.0.3
+              - sqlglot==30.25.0

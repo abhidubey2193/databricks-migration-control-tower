@@ -4,9 +4,9 @@
 
 ## Local checks
 
-`python -m pytest -q`: **87 passed**.
+`python -m pytest -q`: **135 passed**.
 
-Coverage includes record comparison, clone restrictions, the programme state machine, approval ownership, configuration drift, pinned baseline binding, idempotent run requests, interrupted clone recovery and dashboard rendering. Python compilation and `git diff --check` also pass. GitHub Actions also passed for the serverless write fix, commit `b4bd26c` ([run](https://github.com/abhidubey2193/databricks-migration-control-tower/actions/runs/40549071165)).
+Coverage includes the general fleet lifecycle, two-sided 11-task execution through a simulated Jobs service, classic failure isolation, approval identity, code/config/contract drift, run recovery, Bundle CAS, paused cutover/activation/rollback, lease exclusion, credential rejection, dependency/AST/SQL proposals, billing attribution, shared dashboard reading and real local Spark comparison. Python compilation and `git diff --check` also pass. GitHub Actions also passed for the serverless write fix, commit `b4bd26c` ([run](https://github.com/abhidubey2193/databricks-migration-control-tower/actions/runs/40549071165)).
 
 ## Workspace checks
 
@@ -24,10 +24,18 @@ The connected run summary reports job `817177348613471`, run `1014105518777189`,
 
 The validation baseline is synthetic. The trigger-safety source was already serverless. Neither result proves classic-compute execution.
 
+## New implementation checks
+
+- 135 local tests passed, including 3 real local Spark tests (Spark 3.5.9, Java 17). Jobs API lifecycle tests use a simulated service; they are not live classic execution.
+- Bundle configuration was checked against the installed official CLI 1.22.1 JSON schema with zero schema errors. Authentication/deployment is a separate check.
+- Compilation and selected Ruff correctness checks passed.
+- `workspace_acceptance` adds operator-run 1-task/11-task serverless validation and negative controls; its output has not yet been supplied.
+- The new general controller adds real classic A/B, cost, reconciliation and paused cutover/rollback. These require suitable workspace resources for live acceptance.
+
 ## Still to check
 
 - Full authenticated Bundle validation and deployment. The local CLI attempt stopped at missing credentials.
 - Streamlit App deployment. The demonstrated progress view is the notebook dashboard.
 - Genuine classic execution and before/after billing. No savings are claimed.
 
-The programme runner assumes one writer per programme. Duplicate revisions fail closed; the journal is not a distributed lock. Sandbox self-approval is limited to the authenticated fixture owner.
+The new fleet controller uses a cooperative Delta lease; the earlier demo runner remains single-writer. Sandbox self-approval is limited to the authenticated fixture owner. Restrict UC journal/lease write privileges.

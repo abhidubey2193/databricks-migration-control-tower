@@ -1,87 +1,96 @@
 # Architecture
 
-## Problem and scope
-
-A per-job migration assistant does not give a platform owner a fleet inventory, an approval history or evidence that the output still matches. This project supplies those controls around a narrow, supported migration path.
-
-The main demonstration uses imported classic job definitions and synthetic baseline data. It creates and executes a real serverless target. It does not claim to have run classic compute or completed production cutover.
-
-## Components
+The unit of migration is a workload in a named programme. Inventory answers what exists; programme state answers what has been reviewed, executed and verified. They are joined by the source job ID, while previous programme attempts remain visible in the audit history.
 
 ```mermaid
 flowchart TD
-    A["Assessment and plan"] --> P["Programme state machine"]
-    P --> J["Delta event journal"]
-    P --> R["Guarded Jobs API adapter"]
-    R --> E["Serverless target job"]
-    E --> O["Isolated Delta output"]
-    O --> V["Version-pinned comparison"]
-    V --> P
-    J --> D["Read-only dashboard"]
+    A[SDK inventory and source scan] --> B[Assessment and reviewed manifest]
+    B --> C[Plan and authenticated approval]
+    C --> D[Leased lifecycle controller]
+    D --> E[Classic validation clone]
+    D --> F[Serverless validation clone]
+    E --> G[Pinned Delta comparison]
+    F --> G
+    G --> H[Paused cutover or rollback]
+    D --> I[Delta event journal]
+    G --> I
+    H --> I
+    I --> J[Notebook and App dashboards]
 ```
 
-The notebook runner coordinates these steps. The arrows show the lifecycle, rather than Python import dependencies.
+## Components
 
-| Component | Responsibility | Boundary |
-|---|---|---|
-| `assessment.py`, `discovery.py` | Inventory, findings, readiness and workload references | Read-only workspace calls; incomplete scans carry warnings |
-| `orchestration.py` | Build supported serverless candidates and validate task graphs | Pure planning; unsupported configuration fails closed |
-| `program.py` | State transitions, approval binding and evidence requirements | No direct Spark or Jobs calls; receives a journal through a small protocol |
-| `delta_journal.py` | Append state/audit revisions and recover the current state | One serialized writer per programme; no distributed lock |
-| `program_runtime.py` | Create/recover clones, submit runs and inspect run state | Uses approved payloads and Jobs API identifiers |
-| `validation.py` | Exact schema and record comparison | Does not execute jobs or infer business equivalence |
-| `notebook_dashboard.py` | Render saved inventory, programme states and evidence | Read-only; does not authorize or perform cutover |
-
-The local CLI predates the Delta programme and uses SQLite. It remains useful for offline examples and narrow sandbox operations. It is a separate deployment mode, not a replica of the Delta state. Do not treat both stores as authoritative for the same workload.
+| Component | Responsibility |
+|---|---|
+| `discovery.py`, `static_scan.py`, `assessment.py` | Permission-scoped inventory, explicit Jobs array pagination, source export and deterministic findings |
+| `remediation.py` | Bounded script retrieval, strict dependency translation, reviewable AST/SQL edits and JAR packaging |
+| `orchestration.py` | Shared direct serverless compiler; dependency validation and trigger removal |
+| `program.py` | State transitions, configuration-bound approval, snapshots and evidence binding |
+| `fleet.py`, `program_runtime.py` | Manifest contracts, classic/serverless clone creation, idempotent submission, wave throttling and execution observation |
+| `lease.py`, `delta_journal.py` | Cooperative exclusive controller lease; append-only state-plus-audit revisions |
+| `ab.py`, `validation.py` | Distributed pinned-table comparison and bounded/local record comparison |
+| `cost.py` | Workspace-scoped, correction-aware run attribution and effective list pricing |
+| `reconcile.py`, `promotion.py` | Atomic Bundle writeback, staged original-ID cutover, activation and rollback |
+| `evidence.py`, `notebook_dashboard.py` | Shared persisted reader, fleet/programme join and escaped HTML view |
 
 ## State and identity
 
-The journal key is `(program_id, workload_id, sequence)`. Each row stores the resulting state, event type, actor, time and details in one Delta commit. A recovered history must have contiguous revisions, matching snapshot identifiers and a recognized state schema. Duplicate or inconsistent histories stop further work.
+`program_events` has a composite logical identity `(program_id, workload_id, sequence)`. An appended row contains the authenticated actor, event type/time, complete state snapshot and event details. State and its audit record are one Delta append. Reads reject duplicate revisions, gaps and mismatched event/snapshot identities.
 
-Normal progress is:
+The general controller acquires a lease by updating one existing Delta row conditionally. Delta transaction conflicts serialize acquisition. It renews before journal writes and mutating REST requests. Expired/non-owned leases stop writes. The legacy synthetic demo remains single-writer; it is not retroactively described as using the new lease.
 
-`READY → PLANNED → APPROVED → CLONE_REQUESTED → CLONED → EXECUTION_REQUESTED → EXECUTING → EXECUTED → VALIDATED`
+A single Bundle controller run is also enforced with `max_concurrent_runs=1`. The lease coordinates interactive controller invocations too. UC write privileges must be restricted: this is a cooperative control plane, not tamper-proof storage against an administrator.
 
-Assessment blockers and execution/validation failures remain explicit states. The 11-task example may move from an agent-limit blocker to a direct-API plan, but the demo does not execute it.
+SDK identity must match SQL `current_user`. The runner derives administrator status from the authenticated principal's groups; it is not a widget. A stored approval binds the source, candidate, classic validation definition, production proposal, notebook hashes, input snapshot and manifest. Literal credential-like settings are refused before durable backups.
 
-The notebook checks that SQL `current_user()` agrees with the SDK principal. Approval records that identity and its scope. A workspace-admin indication comes from the principal's groups. Otherwise, self-approval is limited to the authenticated owner of a synthetic fixture. The Python API trusts its caller to supply identity; it is not an external authorization service.
+## Execution model
 
-`VALIDATED` means the recorded output comparison passed. It does not mean `MIGRATED`, and the programme never enables production triggers.
+The manifest is the workload's I/O contract. It declares an immutable input table/version, parameter names, task-input dependencies, final output task, ignored/key columns and wave. Planning gives classic and serverless runs independent output namespaces. Automatic execution is limited to notebook tasks that obey this reviewed contract.
 
-## Decisions
+The classic baseline is an unscheduled validation clone retaining classic compute and libraries. The source job is not run. A successful bound classic run and immutable output version must exist before serverless submission. Both requests use durable idempotency tokens. Exact identity tags allow job recovery if creation succeeds before the corresponding event is committed; duplicate matches stop recovery.
 
-| Decision | Reason | Tradeoff |
-|---|---|---|
-| Delta history for the workspace route | State and supporting evidence stay in Unity Catalog; no external database is needed for the demo | Revisions are append-only snapshots; the implementation assumes a serialized runner |
-| Fingerprint source and candidate before approval | Approval must refer to the configuration actually reviewed, including programme tags | A changed plan needs a new review; fingerprints are not immutable artifact packaging |
-| Keep a large job's dependency graph intact | The migration agent's task cap does not require splitting a supported Jobs API job | The guarded direct path is capped at 100 tasks and rejects unsupported settings |
-| Remove all clone triggers | A validation copy must not compete with the original schedule | Promotion and schedule handover remain manual |
-| Bind Delta versions | Later table writes must not change the data being compared | Time travel needs retained table history and does not cover external side effects |
-| Compare record multisets | Row ordering is irrelevant; duplicate multiplicity is not | Exact matching needs bounded data; tolerance/business rules need a separate policy |
-| Fail closed on uncertain configuration | An explainable refusal is preferable to stripping a setting silently | The automatic path supports fewer workloads |
+The general runner's main path is:
+
+`ASSESSED → PLANNED → APPROVED → classic baseline execution → CLONED → EXECUTION_REQUESTED → EXECUTING → EXECUTED → VALIDATED`
+
+Failures are explicit. `KEEP_CLASSIC` and `DEFERRED` are administrator decisions before execution. Validation failure is not a migrated workload. Synthetic baselines cannot authorize cutover.
+
+Bulk execution advances a selected wave without waiting for all Jobs to finish. It limits inflight workloads, enables Jobs queueing and checks cross-workload validation dependencies. A task DAG is never split by an arbitrary task count.
+
+## Validation and billing
+
+Distributed comparison uses Spark SQL equality semantics and `EXCEPT ALL` in both directions. It preserves duplicate multiplicity without collecting the complete data into Python. It compares sorted typed schemas, row counts, null counts, duplicate-key groups and changed-key groups. Schema mismatch produces FAIL; unsupported set-operation types produce an error rather than PASS.
+
+Pinned Delta versions bind the historical outputs to the recorded run. Ignored columns are explicit and cannot overlap keys. The older local/warehouse comparison remains bounded and fails on cap overflow; it is not used as a sample-based full-table claim.
+
+Billing is independently observed and can lag execution. Signed billing quantities retain corrections. Price matching uses SKU, cloud, unit, USD currency and effective interval; missing, overlapping or boundary-spanning prices cannot become fabricated totals. Savings are shown only for successful matching outputs and complete positive attributed usage. USD list cost excludes discounts and external cloud infrastructure.
+
+## Cutover, rollback and repository state
+
+Cutover requires genuine classic/serverless PASS evidence, fresh code/configuration digests, matching successful Jobs runs, a verified source backup, no active related runs, trigger-free validation clones and verified Bundle writeback. It first pauses source triggers, verifies related runs have drained, then resets the original job ID to the serverless configuration with triggers paused. Activation restores the original trigger policy separately.
+
+Rollback verifies the current migrated digest and backup, restores the classic Bundle resource and resets the original ID with triggers paused. It also uses a separate activation action. Neither transition silently overwrites third-party changes. A notebook code edit blocks these actions: a configuration backup cannot restore externally edited code.
+
+Generated Bundle resources omit triggers and require an explicit bind to manage the original ID. Runtime activation records the resulting trigger-policy reconciliation requirement before another Bundle deployment. The system claims file writeback and drift detection, not an external Git commit/review or a deployment it did not perform.
 
 ## Failure handling
 
-| Interruption or error | Behaviour |
+| Failure | Behaviour |
 |---|---|
-| Before clone creation | Approval and the source backup must already be in the journal |
-| Create succeeds but the response/state write is lost | Recovery searches the exact programme/workload tags, verifies the candidate and rejects multiple matches |
-| Run request is interrupted | Retry uses the same Jobs idempotency token |
-| Clone changes after readback | Its stored digest no longer matches; execution/validation is refused |
-| Job fails | The run ID and failure state remain available; no validation success is recorded |
-| Comparison differs | Record `VALIDATION_FAILED`; leave cutover blocked |
-| Negative control unexpectedly passes | Refuse to record it as a detected failure |
-| Journal has gaps, duplicates or an unknown schema | Stop and reconcile; do not guess a current state |
-| Billing is unavailable or delayed | Record availability, not an estimated saving |
+| Inventory permission/cap failure | Partial scan with errors; no false completeness |
+| Unsupported task/script/library/code | Planning blocked, review proposal or keep-classic decision |
+| Source, code or approved-contract drift | Stop before execution/cutover |
+| Duplicate job identity or journal revision | Stop and reconcile |
+| Crash after create/run submission | Recover by exact tags/idempotency token |
+| Failed classic baseline | Record failure; do not launch target |
+| Schema/record difference | Persist validation FAIL; no cutover |
+| Missing billing or prices | Pending/incomplete; no savings percentage |
+| Crash after cutover reset | Verify live readback before completing the saved request |
+| Active runs or clone triggers | Block cutover, rollback or activation |
+| Rollback backup/file drift | Stop; do not overwrite current state |
 
-Creation recovery depends on tagged discovery and is not an exactly-once transaction across Delta and Jobs. Run submission has the stronger service-side idempotency guarantee. A job can continue while its coordinating notebook is disconnected; rerunning the same programme resumes observation.
+## Deployment boundary
 
-## Production boundary
+The Bundle includes the controller, acceptance/scan/validation/dashboard jobs and App definition. `scripts/deploy.sh` is the authenticated validation/deployment entry point. Local CLI schema checks do not prove entitlement, UC grants or live deployment.
 
-The sandbox uses the notebook principal's Unity Catalog and Jobs permissions. Anyone who can write the journal is inside its trust boundary. Consistency checks do not make it a tamper-proof audit log.
-
-For production, put mutations behind a service principal, restrict journal writes, enforce reviewer roles outside notebook code and serialize mutations with a real coordinator. Package source as immutable artifacts, test the Bundle on a clean workspace, add workload-specific comparison policies and implement a separately approved cutover/restore procedure. None of those are presented as already delivered here.
-
-## Evidence
-
-The earlier inventory, comparison, trigger-safety and dashboard notebooks have saved operator-supplied workspace outputs. The connected programme has local state-machine/adapter coverage and still needs its full sandbox run. `demo/VERIFICATION.md` separates these results.
+Free Edition and Express serverless workspaces cannot execute the classic side. The serverless acceptance notebook and earlier live demo are useful evidence there; a genuine classic A/B test still requires an authorized classic-capable sandbox. The older SQLite CLI is a separate local exploration path, not a second synchronized source of truth.

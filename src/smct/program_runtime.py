@@ -2,12 +2,12 @@
 
 import copy
 
-from .discovery import serial
+from .discovery import serial, get_job_settings
 from .orchestration import digest
 
 
 def check_candidate(actual, planned):
-    if any(actual.get(k) for k in ("schedule", "trigger", "continuous")):
+    if any(actual.get(k) for k in ("schedule", "trigger", "continuous", "triggers")):
         raise ValueError("Clone has triggers")
     if (
         actual.get("parameters")
@@ -23,6 +23,11 @@ def check_candidate(actual, planned):
         if actual.get("tags", {}).get(key) != value:
             raise ValueError("Clone tags drift")
     tasks = actual.get("tasks") or []
+    from .orchestration import validate_task_graph
+
+    validate_task_graph(tasks)
+    if actual.get("max_concurrent_runs", 1) != planned.get("max_concurrent_runs", 1):
+        raise ValueError("Clone concurrency drift")
     expected = planned.get("tasks") or []
     if len(tasks) != len(expected):
         raise ValueError("Clone task count drift")
@@ -36,7 +41,18 @@ def check_candidate(actual, planned):
             for k in ("new_cluster", "existing_cluster_id", "job_cluster_key")
         ):
             raise ValueError("Clone is not serverless")
-        for key in ("notebook_task", "depends_on", "environment_key"):
+        for key in (
+            "notebook_task",
+            "spark_python_task",
+            "python_wheel_task",
+            "depends_on",
+            "environment_key",
+            "run_if",
+            "timeout_seconds",
+            "max_retries",
+        ):
+            if key in ("run_if", "timeout_seconds", "max_retries") and key not in task:
+                continue
             if task.get(key) != live.get(key):
                 raise ValueError(f"Clone {key} drift")
     if actual.get("environments") != planned.get("environments"):
@@ -66,6 +82,10 @@ def create_or_recover_clone(w, program, wid):
         if (
             tags.get("smct_program") == program.program_id
             and tags.get("smct_workload") == wid
+            and (
+                not planned.get("tags", {}).get("smct_role")
+                or tags.get("smct_role") == planned["tags"]["smct_role"]
+            )
         ):
             matches.append(job.job_id)
     if len(matches) > 1:
@@ -77,14 +97,14 @@ def create_or_recover_clone(w, program, wid):
         if not result.get("job_id"):
             raise RuntimeError("Create returned no job ID; reconcile before retry")
         job_id = result["job_id"]
-    actual = serial(w.jobs.get(int(job_id)).settings)
+    actual = get_job_settings(w, int(job_id))
     check_candidate(actual, planned)
     return program.attach_clone(wid, int(job_id), actual)
 
 
 def submit_or_recover_run(w, program, wid):
     state = program.execution_requested(wid)
-    actual = serial(w.jobs.get(state["clone_job_id"]).settings)
+    actual = get_job_settings(w, state["clone_job_id"])
     if digest(actual) != state["clone_digest"]:
         raise ValueError("Clone changed after approval/readback; refuse run")
     result = w.api_client.do(

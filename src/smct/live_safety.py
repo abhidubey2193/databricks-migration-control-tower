@@ -43,7 +43,7 @@ def run_safety_demo(w, notebook_path, persist_backup, *, apply=False):
     if original is None: original=create(source)
     source_id=int(original.job_id)
     before=serial(original.settings)
-    if (before.get('schedule') or {}).get('pause_status')!='PAUSED' or before.get('trigger') or before.get('continuous'):
+    if (before.get('schedule') or {}).get('pause_status')!='PAUSED' or before.get('trigger') or before.get('continuous') or before.get('triggers'):
         raise ValueError('Fixture source is not safely paused; refuse to proceed')
     tasks=before.get('tasks') or []
     if len(tasks)!=1 or tasks[0].get('notebook_task',{}).get('notebook_path')!=notebook_path or any(tasks[0].get(k) for k in COMPUTE_FIELDS):

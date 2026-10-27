@@ -5,11 +5,12 @@ from .models import Finding
 SEVERITY_PENALTY = {"blocker": 35, "high": 18, "medium": 9, "low": 3}
 
 CODE_RULES = [
+    ("L6", "high", r"\.(?:checkpoint|localCheckpoint)\s*\(|spark\.catalog\.(?:cacheTable|uncacheTable|clearCache)\s*\(|(?i:(?:cache|uncache|refresh)\s+table|clear\s+cache)", "Unsupported catalog cache/checkpoint API", "Review recomputation and materialise required intermediate data to Delta."),
     ("L6", "blocker", r"\b(?:sc|spark\.sparkContext)\.setCheckpointDir\s*\(", "RDD checkpoint API", "Review serverless-compatible checkpoint strategy."),
     ("L6", "high", r"\bglobal_temp\b|createGlobalTempView\s*\(", "Global temporary view", "Persist intermediate output to governed Delta tables."),
     ("L6", "blocker", r"dbutils\.fs\.(?:mount|unmount|updateMount|refreshMounts)\s*\(", "DBFS mount management", "Migrate storage access to Unity Catalog volumes or external locations."),
     ("L13", "medium", r"(?i)\b(?<!try_)cast\s*\(|(?<!try_)\bdivide\s*\(|\s/\s|\bdate_parse\b", "Potential ANSI semantic difference", "Review casts and divisions; prefer try_cast/try_divide where applicable."),
-    ("L13", "high", r"(?i)\.writeStream\b", "Streaming query", "Check trigger configuration and compare classic/serverless behavior."),
+    ("L13", "low", r"(?i)\.writeStream\b", "Streaming query", "Check trigger configuration and compare classic/serverless behavior."),
 ]
 
 def check_code(source: str, language: str = "PYTHON") -> list[Finding]:
@@ -19,6 +20,8 @@ def check_code(source: str, language: str = "PYTHON") -> list[Finding]:
     for limit, severity, pattern, description, remediation in CODE_RULES:
         if re.search(pattern, source):
             result.append(Finding(limit, severity, description, remediation))
+    if re.search(r'\.trigger\s*\([^)]*(?:processingTime|continuous)\s*=', source):
+        result.append(Finding('L13','high','Unsupported time-based streaming trigger','Review bounded availableNow processing or a continuous Lakeflow pipeline'))
     if '.writeStream' in source and not re.search(r'\.trigger\s*\(', source):
         result.append(Finding('L13','high','Streaming write has no explicit trigger','Use availableNow=True for bounded processing after reviewing semantics; validate output'))
     return result
@@ -31,7 +34,7 @@ def check_job(settings: dict) -> list[Finding]:
             findings.append(Finding('L1','blocker',f"Unsupported task type: {task.get('task_key','unknown')}",'Use manual assessment; automatic clone supports notebook, Python and wheel tasks only'))
     if len(tasks) > 10:
         findings.append(Finding("L2", "blocker", f"Job contains {len(tasks)} tasks (>10)", "Plan task-group migration; do not split dependencies automatically."))
-    if settings.get("schedule") or settings.get("trigger") or settings.get("continuous"):
+    if settings.get("schedule") or settings.get("trigger") or settings.get("continuous") or settings.get("triggers"):
         findings.append(Finding("L10", "high", "Job has an active trigger definition", "Never enable clone and original simultaneously; require a cutover gate."))
     for t in tasks:
         key = t.get("task_key", "unknown")

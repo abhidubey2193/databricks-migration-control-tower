@@ -7,11 +7,11 @@ import hashlib
 import json
 import os
 from pathlib import Path
-from .discovery import serial
+from .discovery import serial, get_job_settings
 
 SUPPORTED = {"notebook_task", "spark_python_task", "python_wheel_task"}
 COMPUTE_FIELDS = {"existing_cluster_id", "new_cluster", "job_cluster_key"}
-TRIGGERS = ("schedule", "trigger", "continuous")
+TRIGGERS = ("schedule", "trigger", "continuous", "triggers")
 
 
 def digest(settings):
@@ -23,11 +23,10 @@ def digest(settings):
 def build_serverless_clone(settings, *, allow_large=False):
     """Returns candidate without side effects; unsupported or ambiguous constructs fail closed."""
     tasks = settings.get("tasks") or []
-    limit = 100 if allow_large else 10
+    limit = 1000 if allow_large else 10
     if not tasks or len(tasks) > limit:
         raise ValueError(f"Only jobs with 1-{limit} explicit tasks supported")
-    if allow_large:
-        validate_task_graph(tasks)
+    validate_task_graph(tasks)
     if settings.get("git_source"):
         raise ValueError(
             "Git-backed jobs require repository changes before cloning (L9)"
@@ -136,6 +135,7 @@ def build_serverless_clone(settings, *, allow_large=False):
     result.pop("email_notifications", None)
     result.pop("notification_settings", None)
     result.pop("format", None)
+    result["queue"] = {"enabled": True}
     return result
 
 
@@ -148,7 +148,7 @@ def clone_job(w, store, job_id, backup_dir="backups", apply=False):
         raise ValueError("Migration already recorded")
     if not item["eligible"]:
         raise ValueError("Readiness contains blockers; refuse clone")
-    data = serial(w.jobs.get(job_id).settings)
+    data = get_job_settings(w, job_id)
     if item["compute_mode"] != "classic":
         raise ValueError("Source is not a classic job")
     if not any(t.get(k) for t in data.get("tasks", []) for k in COMPUTE_FIELDS):
@@ -200,8 +200,8 @@ def cutover_report(w, store, job_id):
     m = store.migration(wid)
     if not m:
         raise ValueError("No migration clone recorded")
-    before = serial(w.jobs.get(job_id).settings)
-    clone = serial(w.jobs.get(m["clone_job_id"]).settings)
+    before = get_job_settings(w, job_id)
+    clone = get_job_settings(w, m["clone_job_id"])
     backup = Path(m["backup_path"])
     no_triggers = not any(clone.get(x) for x in TRIGGERS)
     no_drift = digest(before) == m["source_digest"]

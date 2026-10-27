@@ -11,8 +11,9 @@ from .ab import safe_table
 
 
 class DeltaJournal:
-    def __init__(self, spark, table):
+    def __init__(self, spark, table, lease=None):
         self.spark = spark
+        self.lease = lease
         self.table = safe_table(table)
         self._cache = {}
         spark.sql(f"""CREATE TABLE IF NOT EXISTS {self.table} (
@@ -53,6 +54,8 @@ class DeltaJournal:
         ]
 
     def append(self, event, expected_sequence):
+        if self.lease is not None:
+            self.lease.renew()
         prior = [
             e
             for e in self._read(event["program_id"])
