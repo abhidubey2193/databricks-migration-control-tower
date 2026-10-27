@@ -1,31 +1,32 @@
-# Verification record
+# Verification
 
-27 October 2026. Local environment: Python 3.12, Databricks SDK 0.157.0, Streamlit 1.66.1, SQL connector 4.8.0, Databricks CLI 1.22.1.
+27 October 2026. Python 3.12, Databricks SDK 0.157.0, Streamlit 1.66.1 and CLI 1.22.1.
 
-| Check | Actual result |
-|---|---|
-| Untouched enhanced branch ee73f1d test suite in isolated archive | 11 passed |
-| Updated unit/regression/dashboard suite | 55 passed, 0 failed |
-| Editable project install with app/dev extras | Succeeded |
-| Python compilation and diff whitespace check | Passed |
-| `python -m smct.cli demo --output demo-output` | PASS scenario true; FAIL scenario false; original unchanged; clone triggers absent |
-| SDK model round trip | Clone task payload/environment preserved |
-| Streamlit AppTest | Seven tabs, synthetic banner, no runtime exception |
-| Official CLI Bundle validate | Blocked by absent default workspace credentials; not a successful validation |
-| Workspace Spark validation notebook | User-provided final output at 2026-10-27T15:09:18.584506+00:00: matching PASS, intentional FAIL; see workspace-validation-evidence.json |
-| Delta evidence persistence | Notebook reached final print after write calls; saved tables not independently queried |
-| Workspace fleet scan | User-provided final summary: 9 objects, complete true, warnings empty (initial scan: 2 objects); see workspace-fleet-evidence.json |
-| Notebook progress dashboard | User-provided rendered summary: 9 objects, complete true, 1 safety report, 4 validation reports (2 PASS / 2 FAIL); see workspace-dashboard-evidence.json |
-| Live Jobs API trigger-safety demo | User-provided PASS at 2026-10-27T15:26:44.921484+00:00: actual job IDs, paused unchanged source, no-trigger clone, persisted backup, zero jobs started; see workspace-clone-safety-evidence.json |
-| Live Bundle / App deployment and compute selection | Not independently verified; no run ID/compute metadata supplied |
-| Genuine classic execution / A/B jobs | Not verified |
-| Demo video | Not recorded |
-| Repository visibility | Public at inspection; unchanged |
-| Judge access | Permission checks return read for Nivethan2893, diggibyte and veerabadrachari-diggibyte; required Admin not granted |
-| Submission email | Draft prepared; not sent |
+## Local checks
 
-Tests cover typed and empty schemas, duplicate/key groups, nulls, type collisions, non-finite values, SQL identifier rejection, table cap, same-table rejection, stale source/cluster configurations, trigger types, unsupported task fields, partial discovery, backup corruption, wave selection and persistent synthetic evidence.
+`python -m pytest -q`: **82 passed**.
 
-**NO-GO for submission scoring:** workspace validation now has user-reported execution evidence, and fleet discovery also has a successful user-reported summary. Notebook dashboard rendering now also has user-reported success. Live trigger safety now also has successful user-reported Jobs API evidence. The mandatory video is still missing. Full Bundle/App deployment remains unverified; the working notebook view is the demonstrated alternative progress view. Authentication succeeded in a personal trial sandbox; the console subsequently blocked automated browser control, and the Genie connection could not be enabled in this session. No genuine classic run is claimed. Partner Academy Medallion Labs classic compute availability is unverified.
+Coverage includes record comparison, clone restrictions, the programme state machine, approval ownership, configuration drift, pinned baseline binding, idempotent run requests, interrupted clone recovery and dashboard rendering. Python compilation and `git diff --check` also pass.
 
-Notebook session cache fix: the dashboard explicitly reloads its rendering module after Git updates. A local regression recreates a stale imported function, reloads it and renders the safety-report section. The user subsequently supplied a successful refreshed dashboard summary: 9 objects, 1 safety report, 4 validation reports (2 PASS / 2 intentional FAIL).
+## Workspace checks
+
+The operator supplied these outputs from the personal AWS trial sandbox. They were not independently retrieved by the assistant.
+
+| Run | Result | Saved evidence |
+|---|---|---|
+| Fleet scan | 9 objects, complete=true, no warnings | workspace-fleet-evidence.json |
+| Validation notebook | Matching output PASS; changed output FAIL | workspace-validation-evidence.json |
+| Trigger-safety fixture | Paused source unchanged, no-trigger clone, backup saved, zero jobs started | workspace-clone-safety-evidence.json |
+| Refreshed dashboard | 9 objects, 1 safety report, 4 comparison reports | workspace-dashboard-evidence.json |
+
+The validation baseline is synthetic. The trigger-safety source was already serverless. Neither result proves classic-compute execution.
+
+## Still to check
+
+- Run the new `program_demo` notebook with `action=run`. It should record one connected lifecycle, an actual serverless Jobs run, a version-pinned comparison and a failed negative control.
+- Confirm the new programme state/audit view in the dashboard.
+- Full authenticated Bundle validation and deployment. The local CLI attempt stopped at missing credentials.
+- Streamlit App deployment. The demonstrated progress view is the notebook dashboard.
+- Genuine classic execution and before/after billing. No savings are claimed.
+
+The programme runner assumes one writer per programme. Duplicate revisions fail closed; the journal is not a distributed lock. Sandbox self-approval is limited to the authenticated fixture owner.

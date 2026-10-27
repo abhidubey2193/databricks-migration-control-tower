@@ -1,17 +1,24 @@
-# Executable limitation examples
+# Limitation examples
 
-Run `python -m smct.cli demo --output demo-output` from the repository root.
+For the connected workspace example, run `notebooks/program_demo` with `action=assess`, inspect the plans, then use `action=run` for the ready fixture. All classic definitions and baseline records are synthetic.
 
-| ID | Input | Observable output | Depth |
-|---|---|---|---|
-| L1 | Four synthetic classic job definitions | Persisted inventory, readiness, statuses, approval events and deterministic wave plan | Local implementation; SDK discovery separately requires workspace authentication |
-| L2 | 11-task chain with explicit dependencies | Blocker, rejected clone path, manual dependency-preserving migration recommendation | Detection; no splitting |
-| L3/L4 | Custom image and init script | Container blocker and script finding with remediation | Detection; no container conversion |
-| L8 | Three synthetic records with duplicates, reordered and changed outputs | PASS and FAIL, null counts, typed schema comparison, changed key groups | Local exact comparator; no classic run |
-| L9 | Original settings digest and backup | Cutover checks digest and backup integrity | Configuration drift; no Git patch generation |
-| L10 | Unpaused synthetic schedule | Clone has no schedule/continuous/trigger, original unchanged | Local simulated SDK plus live serverless-source safety fixture reported by user; no classic migration |
-| L13 | CAST, division and streaming without trigger source | Findings and try_cast/try_divide/explicit-trigger suggestions | Heuristic detection; no automatic semantic rewrite |
+| ID | Example | Result and boundary |
+|---|---|---|
+| L1 | Ready orders, blocked image/init-script workload, 11-task chain | Assessment, waves, approval, backup, clone/run references and validation share a Delta programme/workload key. New connected route awaits workspace execution. |
+| L2 | 11-task dependency chain | Generates a direct Jobs API candidate with all dependencies retained. No split is needed for the agent-specific ten-task limit. The demo does not execute this large plan. |
+| L3/L4 | Custom container and init script | Detected and blocked; scripts are not translated. |
+| L8 | Four sample rows, including a duplicate and a null | Real target-job path, pinned Delta baseline/output versions, exact comparison and a deliberate failed negative control. New job path awaits workspace execution. The earlier standalone comparison ran successfully. |
+| L9 | Source/code fingerprint, approved plan and clone readback | Configuration drift blocks progress. No Git patch or Bundle writeback. |
+| L10 | Paused serverless source and no-trigger clone | Earlier live fixture passed without starting either job. Source was already serverless. |
+| L12 | Target job ID in system.billing.usage | Reads target usage when available. Billing can lag; no classic baseline or savings calculation. |
+| L13 | Cast, division and missing streaming trigger | Heuristic findings with review suggestions. No automatic semantic rewrite. |
 
-`notebooks/validation_demo.py` is a separate workspace integration example. It writes a synthetic baseline and executes a Spark transformation, persists target outputs in distinct append-only tables, compares PASS/FAIL cases and records reports in Delta. Until this notebook succeeds in an authorized workspace, it is unverified. It never represents its synthetic baseline as an executed classic run.
+The ordinary clone path remains capped at ten tasks. The explicit `allow_large=True` planner supports up to 100 supported tasks and rejects missing dependencies, cycles and unsupported configurations.
 
-The comparator uses exact equality with zero missing/extra tolerance. Key groups preserve duplicate multiplicity. SQL-warehouse mode compares DB-API type metadata, including empty tables, and refuses over-limit tables rather than sampling. Inputs must be immutable isolated snapshots during comparison; concurrent writes and table-version binding are not automated.
+For the local synthetic demo:
+
+```bash
+smct demo --output demo-output
+```
+
+It uses a simulated SDK and SQLite. Expected output is in `expected-results.json`. It is separate from the workspace evidence files.

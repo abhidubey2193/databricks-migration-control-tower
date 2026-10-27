@@ -1,0 +1,15 @@
+resources:
+  jobs:
+    smct_program_demo:
+      name: '[SMCT] Connected programme demo'
+      description: Synthetic assessment and approved serverless validation. No production cutover.
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: program
+          notebook_task:
+            notebook_path: ../notebooks/program_demo.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              program_id: bundle_demo_${bundle.target}
+              action: assess

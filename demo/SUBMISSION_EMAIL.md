@@ -1,50 +1,43 @@
-# Submission email draft
+# Submission draft
 
-Do not send until the mandatory video, final SHA, entrant name and judge access are finalized. The entry remains NO-GO while its required video is missing. User-provided workspace output now covers validation, fleet inventory, notebook dashboard rendering and live trigger safety. Full Bundle/App deployment remains unverified.
+Complete the bracketed fields and update the connected-run result before sending.
 
 To: nivethan.venkatachalam@diggibyte.com; anuj.sen@diggibyte.com; veerabadrachari.r@diggibyte.com; william.r@diggibyte.com
-Subject: Serverless Challenge - Submission - <confirmed entrant name>
+Subject: Serverless Challenge - Submission - [entrant name]
 
 Serverless Migration Challenge - Submission
 
-Name(s) and team: <confirm eligible employee entrant/team>
-Repo link: https://github.com/abhidubey2193/databricks-migration-control-tower/tree/enhanced-control-tower
-Final commit SHA: <insert verified remote final SHA>
-Demo video link: OUTSTANDING
-Cloud tested on (AWS / Azure / GCP): AWS personal trial sandbox, with user-operated notebook runs and pasted output; no classic-compute run.
+Name(s) and team: [confirm]
+Repo: https://github.com/abhidubey2193/databricks-migration-control-tower/tree/enhanced-control-tower
+Final commit SHA: [confirm final remote SHA]
+Demo video: [link required]
+Cloud tested: AWS personal trial sandbox; operator-run notebooks. No classic-compute execution.
 
 Limitations addressed:
-- L1: SDK job/cluster/notebook inventory, readiness, shared-cluster and notebook mapping; durable local approvals/status/audit and wave plans; seven-section Streamlit dashboard and a notebook view of persisted Delta results. User-provided fleet scan summary: 9 objects, complete true, warnings empty. User-provided refreshed notebook dashboard summary confirms 9 objects, 1 safety report and 4 validation reports displayed; App deployment remains unverified.
-- L8: Exact duplicate-aware output comparison with typed schema/null/count/keyed diagnostics; reproducible local PASS/FAIL evidence. Baseline is synthetic. User-provided workspace notebook output confirms equivalent PASS and deliberate FAIL; compute metadata and table persistence have not been independently checked.
-- L10: Approval-gated no-trigger clone, immutable source copy, backup, live settings reassessment, source-digest check and advisory cutover gate. Live synthetic serverless-source fixture reported successful Jobs API creation/readback: source remained paused/unchanged, clone had no triggers, backup persisted, zero jobs started. This is scheduling safety, not classic-to-serverless migration.
-- L2/L3/L4/L5/L6/L7/L11/L13: Selected metadata/static detection with actionable remediation. No automated task splitting or semantic rewrites.
-- L9: Source configuration and backup digest integrity checks; Git jobs rejected pending reconciliation. No Bundle writeback.
+- L1: SDK inventory/readiness and a notebook dashboard. The new connected programme stores decisions, approvals, backups, clone/run references and validation in Delta. Its workspace execution is pending.
+- L2: Generates an 11-task serverless candidate through the direct Jobs API path, preserving the dependency graph. The large candidate is planned, not executed.
+- L8: Typed, duplicate-aware output comparison with null/count/key diagnostics. The standalone notebook demonstrated PASS and intentional FAIL. The new connected target-job route adds pinned Delta snapshots and run binding; its workspace execution is pending. Baseline data is synthetic.
+- L10: Live synthetic fixture produced a paused unchanged source, no-trigger clone and persisted backup, with zero jobs started. Source was already serverless.
+- L9: Configuration/code fingerprints and drift checks; no Git/Bundle writeback.
+- L3/L4/L5/L6/L7/L11/L13: Selected static/metadata detection with remediation guidance. No general automatic code or dependency conversion.
+- L12: Target-job usage query where permitted; no before/after savings claim.
 
-Architecture (max 5 lines):
-Databricks SDK reads workspace inventory into a shared assessment engine.
-Local SQLite stores approval, migration and validation audit records.
-Bundle notebooks persist inventory and synthetic-baseline Spark validation reports to Delta.
-Notebook dashboard and Streamlit display persisted inventory/validation evidence.
-Cloning is explicit and unscheduled; production promotion is manual.
+Architecture:
+The SDK inventories workloads and passes them through a shared assessment engine.
+A Delta event history joins programme decisions and execution/validation evidence by workload.
+Jobs run only explicitly approved synthetic fixtures into isolated output tables.
+The notebook dashboard reads saved state; a separate CLI/Streamlit route uses SQLite.
+Promotion remains manual and synthetic evidence cannot authorize cutover.
 
-Databricks components used: SDK/Jobs API; Bundle configuration; Spark/Unity Catalog Delta; Databricks App definition; optional SQL warehouse reads. Notebook route demonstrated by user-provided output; full Bundle and App deployment are unverified.
+Databricks components: SDK, Jobs API, serverless notebooks/jobs, Unity Catalog Delta, optional billing system tables, Bundle configuration and an unverified App definition.
 
-How to reproduce the demonstrated workspace route:
-Clone the repo as a Databricks Git folder and select enhanced-control-tower.
-On authorized serverless compute run notebooks/validation_demo.py and notebooks/fleet_scan.py with catalog=auto and schema=serverless_migration.
-Run notebooks/clone_safety_demo.py with apply=true to create paused/unscheduled synthetic fixtures without starting them.
-Rerun fleet_scan and control_tower_dashboard.py to show inventory, validation and safety evidence together.
+Deploy/reproduce:
+Clone the repo as a Git folder and select enhanced-control-tower. On authorized Serverless compute, use catalog=auto and schema=serverless_migration. Run program_demo with action=assess, inspect its plan, then action=run. Rerun with the same program_id if a job is still executing. Run fleet_scan and control_tower_dashboard to inspect results. The earlier standalone demos remain available.
 
-Optional Bundle route (not live verified):
-pip install -e '.[app,dev]'
-databricks bundle validate -t dev --profile SANDBOX
-databricks bundle deploy -t dev --profile SANDBOX
-databricks bundle run smct_fleet_scan -t dev --profile SANDBOX
-databricks bundle run smct_validation_demo -t dev --profile SANDBOX
-databricks bundle run smct_dashboard -t dev --profile SANDBOX
+Tests:
+82 local tests pass. Earlier workspace outputs cover a complete 9-object scan, rendered dashboard, matching/mismatched comparison and live scheduling-safety fixture. The new connected route requires a workspace run before claiming it as tested.
 
-What is tested and how: 55 local tests covering comparison, clone safety, persistence, inventory failures, drift/backup corruption and Streamlit startup. Local synthetic demonstration creates PASS/FAIL evidence. User-provided workspace outputs show matching PASS, deliberate FAIL, complete inventory, rendered notebook dashboard and a live trigger-safety PASS. Mocked tests remain distinct from workspace results.
+Known gaps:
+No genuine classic execution, automatic production cutover/rollback, enterprise approval service, verified savings or completed Bundle/App deployment test. The programme runner is single-writer. The required video and final access checks must be completed before sending.
 
-Known gaps and next steps: Demo recording remains mandatory; fleet discovery reported 9 objects with no warnings and the notebook dashboard reported successful rendering. Live trigger-safety demo reported PASS with real job IDs; its source is already serverless. No classic compute execution yet; no actual cost comparison; no authenticated enterprise approval identity; no atomic promotion; no automated Git patch; full control-plane state remains local SQLite.
-
-Confirmation: no customer data, credentials or client workspace details are included: Yes for committed synthetic source and evidence; recheck the final recording and submitted branch.
+Confirmation: no customer data, credentials or client workspace details are included: [confirm after checking the final recording].
