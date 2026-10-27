@@ -52,6 +52,25 @@ program_key = program_id + "_" + namespace
 spark.sql(f"CREATE SCHEMA IF NOT EXISTS `{catalog}`.`{schema}`")
 journal = journal_module.DeltaJournal(spark, f"{catalog}.{schema}.program_events")
 program = program_module.Program(journal, program_key, actor)
+existing = program.states()
+if dbutils.widgets.get("action") == "run" and existing.get("ready", {}).get(
+    "status"
+) not in (
+    "PLANNED",
+    "APPROVED",
+    "CLONE_REQUESTED",
+    "CLONED",
+    "EXECUTION_REQUESTED",
+    "EXECUTING",
+    "EXECUTED",
+    "VALIDATED",
+    "EXECUTION_FAILED",
+    "VALIDATION_FAILED",
+):
+    raise ValueError(
+        "Run action=assess first and review its generated plans before choosing action=run"
+    )
+
 path = None
 for candidate in (
     str(Path.cwd() / "program_target.py"),
@@ -113,6 +132,27 @@ for key, identifier, label in [
     if identifier == "large" and state["status"] == "BLOCKED":
         program.plan(identifier, allow_large=True)
         program.wave(identifier, 2)
+if dbutils.widgets.get("action") == "assess":
+    for identifier, assessed in program.states().items():
+        print(
+            json.dumps(
+                {
+                    "example": identifier,
+                    "status": assessed["status"],
+                    "score": assessed["readiness"],
+                    "source_is_synthetic": assessed["synthetic"],
+                    "findings": assessed["findings"],
+                    "plan_method": assessed.get("plan_method"),
+                    "candidate": assessed.get("candidate"),
+                    "task_layers": assessed.get("task_layers"),
+                },
+                indent=2,
+            )
+        )
+    print(
+        "Review these findings and candidate configurations before selecting action=run."
+    )
+
 # The 11-task candidate is persisted for review, never created or run by this demo.
 if dbutils.widgets.get("action") == "run":
     state = program.state("ready")
