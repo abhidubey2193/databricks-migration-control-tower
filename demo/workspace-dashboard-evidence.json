@@ -4,22 +4,27 @@
   "notebook": "notebooks/control_tower_dashboard.py",
   "result": {
     "dashboard": "rendered",
-    "inventory_objects": 9,
+    "inventory_objects": 14,
     "inventory_complete": true,
+    "program_workloads": 9,
+    "program_validated": 1,
+    "program_audit_events": 34,
     "safety_reports": 1,
-    "validation_reports": 4,
-    "pass_reports": 2,
-    "fail_reports": 2
+    "validation_reports": 6,
+    "pass_reports": 3,
+    "fail_reports": 3
   },
   "limits": [
     "The output confirms the notebook reached its final summary after displayHTML.",
     "Visual appearance has not been independently inspected.",
-    "Repeated validation runs append history; these counts are report rows, not distinct migrated workloads."
+    "Repeated validation runs append history; these counts are report rows, not distinct migrated workloads.",
+    "Programme counts aggregate saved programme/workload states, including earlier attempts; only one is VALIDATED."
   ],
   "previous_result": {
     "dashboard": "rendered",
-    "inventory_objects": 2,
+    "inventory_objects": 9,
     "inventory_complete": true,
+    "safety_reports": 1,
     "validation_reports": 4,
     "pass_reports": 2,
     "fail_reports": 2

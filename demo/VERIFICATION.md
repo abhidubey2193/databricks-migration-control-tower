@@ -14,19 +14,18 @@ The operator supplied these outputs from the personal AWS trial sandbox. They we
 
 | Run | Result | Saved evidence |
 |---|---|---|
-| Fleet scan | 9 objects, complete=true, no warnings | workspace-fleet-evidence.json |
+| Fleet scan | 14 objects, complete=true, no warnings | workspace-fleet-evidence.json |
 | Validation notebook | Matching output PASS; changed output FAIL | workspace-validation-evidence.json |
 | Trigger-safety fixture | Paused source unchanged, no-trigger clone, backup saved, zero jobs started | workspace-clone-safety-evidence.json |
 | Connected programme | Ready VALIDATED, real job/run IDs, comparison PASS, negative control FAIL, 17 audit events | workspace-program-evidence.json |
-| Refreshed dashboard | 9 objects, 1 safety report, 4 comparison reports | workspace-dashboard-evidence.json |
+| Refreshed dashboard | 14 objects, 9 programme states, 1 validated, 34 programme events, 1 safety report, 6 comparison reports | workspace-dashboard-evidence.json |
 
-The connected run summary reports job `817177348613471`, run `1014105518777189`, ready workload VALIDATED, blocked workload BLOCKED and the 11-task candidate PLANNED. The negative control failed as intended. Its dashboard view is still to check.
+The connected run summary reports job `817177348613471`, run `1014105518777189`, ready workload VALIDATED, blocked workload BLOCKED and the 11-task candidate PLANNED. The negative control failed as intended. The refreshed dashboard includes one validated programme workload. Its 9 programme states and 34 events aggregate earlier programme attempts as well.
 
 The validation baseline is synthetic. The trigger-safety source was already serverless. Neither result proves classic-compute execution.
 
 ## Still to check
 
-- Confirm the new programme state/audit view in the dashboard.
 - Full authenticated Bundle validation and deployment. The local CLI attempt stopped at missing credentials.
 - Streamlit App deployment. The demonstrated progress view is the notebook dashboard.
 - Genuine classic execution and before/after billing. No savings are claimed.

@@ -4,7 +4,7 @@
 - [x] README includes setup, design and known limits.
 - [x] Connected Delta programme, direct large-job planner and recovery checks have local test coverage.
 - [x] Connected programme reached VALIDATED in the sandbox; intentional negative control failed.
-- [ ] Refresh and check the connected programme dashboard view.
+- [x] Refreshed dashboard rendered with 14 inventory objects, 1 validated programme workload and 34 programme audit events.
 - [ ] Record a genuine video of five minutes or less and provide a link judges can open.
 - [ ] Confirm entrant name(s) and team.
 - [ ] Decide repo visibility and approve judge Admin access.

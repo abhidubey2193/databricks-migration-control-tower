@@ -1,6 +1,6 @@
 # Recording outline
 
-Record the actual workspace for no more than five minutes. Complete the connected programme run first. Keep authentication screens and unrelated work out of the recording.
+Record the actual workspace for no more than five minutes. The operator-run programme has reached VALIDATED; its dashboard refresh also rendered. Keep authentication screens and unrelated work out of the recording.
 
 | Time | Screen |
 |---|---|
@@ -11,6 +11,6 @@ Record the actual workspace for no more than five minutes. Complete the connecte
 | 3:30–4:15 | Governance: no-trigger clone, paused-source safety evidence and cutover=false. |
 | 4:15–5:00 | Setup commands, tests and remaining limits: no genuine classic execution, no verified savings and no full Bundle/App deployment test. |
 
-If the connected run has not passed, record only the earlier verified notebook behaviour and state that limitation. Do not present a local test as a workspace run.
+Show programme submission_review_v2_c0be0171d33e. The dashboard aggregates earlier attempts: 9 programme workload states, 1 validated and 34 events. Do not describe these as nine completed migrations. The 6 comparison reports include intentional negative controls.
 
-Before recording, rerun `fleet_scan` and `control_tower_dashboard` so the view includes the latest programme and job references. The recording itself is still outstanding.
+The latest fleet/dashboard summaries show 14 inventory objects and the connected programme evidence. The recording itself is still outstanding.

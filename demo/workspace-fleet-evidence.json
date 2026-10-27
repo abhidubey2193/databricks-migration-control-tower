@@ -4,7 +4,7 @@
   "notebook": "notebooks/fleet_scan.py",
   "evidence_destination": "workspace.serverless_migration",
   "result": {
-    "objects": 9,
+    "objects": 14,
     "complete": true,
     "warnings": []
   },
@@ -14,7 +14,7 @@
     "The summary is printed after the Delta snapshot write; saved records have not been independently queried."
   ],
   "previous_result": {
-    "objects": 2,
+    "objects": 9,
     "complete": true,
     "warnings": []
   }

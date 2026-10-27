@@ -51,6 +51,6 @@
     "The baseline and source definitions are synthetic; target execution is a real serverless Jobs run.",
     "negative_control_passed=false means the deliberately incorrect output was rejected as expected.",
     "The 11-task candidate was planned, not created or executed.",
-    "Connected dashboard refresh remains unverified. No production cutover or savings claimed."
+    "A subsequent operator-supplied dashboard summary includes one validated programme workload; see workspace-dashboard-evidence.json. No production cutover or savings claimed."
   ]
 }
