@@ -3,10 +3,19 @@
   "independently_retrieved": false,
   "notebook": "notebooks/fleet_scan.py",
   "evidence_destination": "workspace.serverless_migration",
-  "result": {"objects": 2, "complete": true, "warnings": []},
+  "result": {
+    "objects": 9,
+    "complete": true,
+    "warnings": []
+  },
   "limits": [
     "Object types and contents were not included in the pasted summary.",
     "Completeness is relative to scanner permissions and configured scope.",
     "The summary is printed after the Delta snapshot write; saved records have not been independently queried."
-  ]
+  ],
+  "previous_result": {
+    "objects": 2,
+    "complete": true,
+    "warnings": []
+  }
 }

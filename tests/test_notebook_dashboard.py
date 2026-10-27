@@ -18,3 +18,18 @@ def test_dashboard_filter_and_partial_warning():
     assert 'PARTIAL INVENTORY' in html and 'permission &lt;denied&gt;' in html
     assert 'Showing 0 of 2 objects' in html
     assert 'NOTEBOOK_ONLY' not in html
+
+
+def test_dashboard_safety_reports_supported_after_module_refresh():
+    import importlib
+    import smct.notebook_dashboard as module
+    # Reproduce a function retained from the earlier notebook session.
+    original=module.render_dashboard
+    try:
+        module.render_dashboard=lambda payload,reports: 'old version'
+        module=importlib.reload(module)
+        html=module.render_dashboard({'metadata':{'complete':True},'workloads':[]},[],safety_reports=[{'source_job_id':123,'clone_job_id':456,'source_schedule_paused':True,'original_unchanged':True,'clone_has_triggers':False,'backup_persisted':True,'jobs_started_by_demo':0,'passed':True}])
+        assert 'Live synthetic scheduling-safety evidence' in html
+        assert '<td>123</td>' in html and '<td>456</td>' in html
+    finally:
+        module.render_dashboard=original

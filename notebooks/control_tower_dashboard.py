@@ -11,7 +11,12 @@ sys.path.insert(0,str(Path.cwd().parent/'src'))
 import json
 from smct.destination import resolve_destination
 from smct.ab import safe_table
-from smct.notebook_dashboard import render_dashboard
+# Git updates do not invalidate Python's session module cache.
+import importlib
+import smct.notebook_dashboard as dashboard_module
+importlib.invalidate_caches()
+dashboard_module=importlib.reload(dashboard_module)
+render_dashboard=dashboard_module.render_dashboard
 
 for key,default in [('catalog','auto'),('schema','serverless_migration')]:
     dbutils.widgets.text(key,default)
